@@ -51,9 +51,18 @@ Skill ini bekerja adaptif dalam **4 Skenario Input**:
 
 ---
 
-## 3. PROTOKOL EKSEKUSI MENYELURUH DENGAN PLAYWRIGHT MCP
+## 3. PROTOKOL EKSEKUSI MENYELURUH DENGAN PLAYWRIGHT MCP & MOBILE ADB
 
-Saat melakukan pengujian, ikuti urutan perintah Playwright MCP berikut:
+### A. Protokol Khusus Aplikasi Mobile DCT (Asset, Cargo, CDC, FLM, dll):
+- **Wajib Masuk ke Test Mode Terlebih Dahulu Sebelum Melakukan Login/Testing**:
+  1. Pada halaman login awal aplikasi mobile DCT, klik ikon **titik 3** (di pojok kanan atas).
+  2. Klik toggle/switch **Test Mode**.
+  3. Masukkan PIN Test Mode: `789123` lalu klik **Submit**.
+  4. Tekan tombol **Back** untuk kembali ke halaman login.
+  5. Pastikan aplikasi berada dalam mode testing sebelum memasukkan kredensial login atau mengeksekusi skenario uji.
+
+### B. Protokol Web & Playwright MCP:
+Saat melakukan pengujian web, ikuti urutan perintah Playwright MCP berikut:
 
 1. **Inisialisasi & Reset State**:
    ```javascript
