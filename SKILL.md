@@ -1,11 +1,11 @@
 ---
 name: qa-e2e-tester
-description: Use when performing end-to-end (E2E) QA testing on any web application, executing test suites via Playwright MCP, testing from FSD/PRD/User Guide/Test Scripts or pure URL, generating automated test scripts (.spec.ts), and producing structured Word (.docx) / Markdown test reports with exhaustive validation and embedded screenshots.
+description: Use when performing end-to-end (E2E) QA testing on web and mobile Android applications (via ADB, Appium, Playwright MCP), testing from FSD/PRD/User Guide/Test Scripts or pure URL/APK, handling DCT mobile apps with mandatory Test Mode (PIN 789123), generating automated test scripts (.spec.ts), and producing structured Word (.docx) / Markdown test reports with exhaustive validation and embedded screenshots.
 ---
 
 # Universal QA E2E Testing & Reporting Skill (`qa-e2e-tester`)
 
-Skill ini adalah standar operasional pengujian kualitas perangkat lunak (Software Quality Assurance) tingkat lanjut yang **WAJIB MENGEKSEKUSI PENGUJIAN SECARA TOTALITAS & EXHAUSTIVE (ZERO MISSED DEFECTS)**. Tidak boleh ada hal kecil, tombol, interaksi, atau validasi yang dilewatkan. Setiap komponen UI, modal, tab, filter, error dialog, input form, format data, boundary, dan permission harus diuji secara menyeluruh dengan **Playwright MCP** dan dilaporkan lengkap beserta bukti screenshot visual format Word (`.docx`).
+Skill ini adalah standar operasional pengujian kualitas perangkat lunak (Software Quality Assurance) tingkat lanjut untuk **Web & Mobile Android Application** yang **WAJIB MENGEKSEKUSI PENGUJIAN SECARA TOTALITAS & EXHAUSTIVE (ZERO MISSED DEFECTS)**. Tidak boleh ada hal kecil, tombol, interaksi, atau validasi yang dilewatkan. Setiap komponen UI, modal, tab, filter, error dialog, input form, format data, boundary, dan permission harus diuji secara menyeluruh dengan **Playwright MCP / Android ADB** dan dilaporkan lengkap beserta bukti screenshot visual format Word (`.docx`).
 
 ---
 
