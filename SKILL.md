@@ -129,8 +129,8 @@ Jika pengguna meminta hasil pengujian diisi langsung ke file Excel/Spreadsheet (
    - Sisipkan file gambar langsung ke sel Excel pada kolom `Screenshot` menggunakan `openpyxl.drawing.image.Image` dengan penyesuaian dimensi gambar (lebar/tinggi sel).
    - Simpan workbook secara aman (tangani locked process/merged cells).
 
-### 5. Dokumen Laporan Word Resmi Berisi Gambar Screenshot (`hasil-test/QA_TEST_REPORT.docx`)
-Dokumen Word disusun otomatis menggunakan library `python-docx` / `docx` dengan struktur:
+### 5. Dokumen Laporan Word Resmi Berisi Gambar Screenshot (`hasil-test/<NAMA_APLIKASI_ATAU_MODUL>_REPORT.docx`)
+Dokumen Word disusun otomatis menggunakan library `python-docx` / `docx` dengan struktur penamaan file format: `hasil-test/<NAMA_APLIKASI/MODUL/WEB_YG_DITEST>_REPORT.docx` (contoh: `hasil-test/DCT_ANDROID_REPORT.docx`, `hasil-test/PAYROLL_WSS_REPORT.docx`):
 1. **Halaman Judul & Meta Informasi** (Target URL, Tanggal, Scope, Status QA).
 2. **Ringkasan Eksekutif & Metrik Kualitas** (Tabel Passed/Failed Rate, Breakdown Severity).
 3. **Matriks Hasil Pengujian Detail** (Tabel komprehensif per elemen & skenario).
@@ -170,5 +170,5 @@ for bug in bugs:
         r_cap.font.size = Pt(8.5)
         r_cap.font.italic = True
 
-doc.save("hasil-test/QA_TEST_REPORT.docx")
+doc.save("hasil-test/<NAMA_APLIKASI/MODUL/WEB_YG_DITEST>_REPORT.docx")
 ```
