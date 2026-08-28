@@ -1,11 +1,11 @@
 ---
 name: qa-e2e-tester
-description: Use when performing end-to-end (E2E) QA testing on web and mobile Android applications (via ADB, Appium, Playwright MCP), testing from FSD/PRD/User Guide/Test Scripts or pure URL/APK, handling DCT mobile apps with mandatory Test Mode (PIN 789123), generating automated test scripts (.spec.ts), and producing structured Word (.docx) / Markdown test reports with exhaustive validation and embedded screenshots.
+description: Use when performing end-to-end (E2E) QA testing on web and mobile Android applications (via ADB, Appium, Playwright MCP), testing backend & mobile APIs (REST/JSON/HTTP), testing from FSD/PRD/User Guide/Test Scripts or pure URL/APK, handling DCT mobile apps with mandatory Test Mode (PIN 789123), generating automated test scripts (.spec.ts), and producing structured Word (.docx) / Markdown test reports with exhaustive validation and embedded screenshots.
 ---
 
 # Universal QA E2E Testing & Reporting Skill (`qa-e2e-tester`)
 
-Skill ini adalah standar operasional pengujian kualitas perangkat lunak (Software Quality Assurance) tingkat lanjut untuk **Web & Mobile Android Application** yang **WAJIB MENGEKSEKUSI PENGUJIAN SECARA TOTALITAS & EXHAUSTIVE (ZERO MISSED DEFECTS)**. Tidak boleh ada hal kecil, tombol, interaksi, atau validasi yang dilewatkan. Setiap komponen UI, modal, tab, filter, error dialog, input form, format data, boundary, dan permission harus diuji secara menyeluruh dengan **Playwright MCP / Android ADB** dan dilaporkan lengkap beserta bukti screenshot visual format Word (`.docx`).
+Skill ini adalah standar operasional pengujian kualitas perangkat lunak (Software Quality Assurance) tingkat lanjut untuk **Web, Mobile Android (APK/ADB), & Backend API Integration** yang **WAJIB MENGEKSEKUSI PENGUJIAN SECARA TOTALITAS & EXHAUSTIVE (ZERO MISSED DEFECTS)**. Tidak boleh ada hal kecil, tombol, interaksi, validasi, atau API endpoint yang dilewatkan. Setiap komponen UI, modal, tab, filter, error dialog, input form, format data, boundary, permission, dan request/response API harus diuji secara menyeluruh dengan **Playwright MCP / Android ADB / HTTP API Client** dan dilaporkan lengkap beserta bukti screenshot visual format Word (`.docx`).
 
 ---
 
@@ -61,7 +61,18 @@ Skill ini bekerja adaptif dalam **4 Skenario Input**:
   4. Tekan tombol **Back** untuk kembali ke halaman login.
   5. Pastikan aplikasi berada dalam mode testing sebelum memasukkan kredensial login atau mengeksekusi skenario uji.
 
-### B. Protokol Web & Playwright MCP:
+### B. Protokol Pengujian API Mobile & Backend (REST/JSON/HTTP):
+1. **Ekstraksi Endpoint API**:
+   - Analisis bytecode/decompiled DEX APK atau network inspection untuk mengambil Base URL, HTTP Method (GET/POST/PUT/DELETE), path route, query params, headers (misal: `Android-ID`, `Authorization`, `Content-Type`), dan payload schema.
+2. **Validasi Request & Response Payload**:
+   - Uji Happy Path: Verifikasi status code `200 OK` / `201 Created`, struktur JSON response, dan keakuratan data yang disimpan ke database.
+   - Uji Negative & Boundary: Blank payload, invalid data type, missing required fields, boundary values -> pastikan response status `400 Bad Request` / `422 Unprocessable Entity` dengan error message yang informatif.
+   - Uji Auth & Security: Request tanpa header token/auth (`401 Unauthorized`), request cross-role/privilege (`403 Forbidden`), SQL Injection & XSS payload injection probe pada field JSON.
+3. **Network Latency & Performance Benchmark**:
+   - Pantau response time API (flag jika latency > 2.000 ms).
+   - Validasi error handling saat timeout / backend offline (tidak boleh return raw 500 stack trace ke client).
+
+### C. Protokol Web & Playwright MCP:
 Saat melakukan pengujian web, ikuti urutan perintah Playwright MCP berikut:
 
 1. **Inisialisasi & Reset State**:
