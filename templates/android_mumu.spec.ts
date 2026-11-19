@@ -41,7 +41,9 @@ async function aktifkanTestMode(driver) {
     "xpath://*[@resource-id='" + PKG + ":id/dialogplus_view_container']" +
     "//*[@resource-id='" + PKG + ":id/Password']"
   );
-  await pinField.setValue('789123'); // PIN Test Mode DCT (konstanta FSD, bukan kredensial user)
+  const testPin = process.env.QA_TEST_MODE_PIN;
+  if (!testPin) throw new Error('QA_TEST_MODE_PIN belum diset via env/local file');
+  await pinField.setValue(testPin); // PIN Test Mode DCT dari env, bukan hardcode
   const submit = await driver.$('android=new UiSelector().text("SUBMIT")');
   await submit.click();
   await driver.pause(1000);

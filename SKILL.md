@@ -1,11 +1,32 @@
 ---
 name: qa-e2e-tester
-description: Use when performing end-to-end (E2E) QA testing on web, Android, and iOS applications (via Playwright MCP, ADB with MuMu/physical devices, Appium/WebdriverIO/XCTest with bundled runnable templates, with visible/live emulator sessions), testing backend & mobile APIs (REST/JSON/HTTP), pentesting authorized mobile/web/network targets with AI-assisted triage, testing from FSD/PRD/User Guide/Test Scripts, APK/IPA, or pure URL, handling DCT mobile apps with mandatory Test Mode (PIN 789123), generating automated test scripts (.spec.ts), and producing structured Word (.docx)/Markdown reports with exhaustive validation, risk scoring, and embedded screenshots.
+description: Use when performing end-to-end (E2E) QA testing on web, Android, and iOS applications (via Playwright MCP, ADB with MuMu/physical devices, Appium/WebdriverIO/XCTest with bundled runnable templates, with visible/live emulator sessions), testing backend & mobile APIs (REST/JSON/HTTP), pentesting authorized mobile/web/network targets, performing network assessment and performance/stability testing, testing from FSD/PRD/User Guide/Test Scripts, APK/IPA, or pure URL, handling DCT mobile apps with mandatory Test Mode (PIN from env), generating automated test scripts (.spec.ts), and producing ONE consolidated Word (.docx) report with exhaustive validation, CVSS/risk scoring, and embedded screenshots.
 ---
 
 # Universal QA E2E Testing & Reporting Skill (`qa-e2e-tester`)
 
 Skill ini adalah standar operasional pengujian kualitas perangkat lunak (Software Quality Assurance) tingkat lanjut untuk **Web, Mobile Android & iOS (APK/IPA, ADB, Appium/XCTest), Backend API, dan Pentest Mobile/Web/Jaringan berbasis AI** yang **WAJIB MENGEKSEKUSI PENGUJIAN SECARA TOTALITAS & EXHAUSTIVE (ZERO MISSED DEFECTS)**. Tidak boleh ada hal kecil, tombol, interaksi, validasi, endpoint, port, atau konfigurasi yang dilewatkan. Setiap komponen UI, modal, tab, filter, error dialog, input form, format data, boundary, permission, request/response API, artifact mobile, dan permukaan jaringan harus diuji secara menyeluruh dengan **Playwright MCP / Android ADB / Appium / HTTP API Client / tool pentest yang diizinkan** dan dilaporkan lengkap beserta bukti screenshot/log. Temuan keamanan wajib diberi **lokasi eksplisit, risk score, dampak bisnis, dan rekomendasi**, bukan sekadar status V/X.
+
+---
+
+## 0.1 MODUL REFERENSI TERPADU (2026-11-19)
+
+Gunakan modul ini sesuai disiplin yang aktif. **Semua disiplin tetap masuk SATU laporan DOCX gabungan.**
+
+| Modul | File | Dipakai saat |
+|---|---|---|
+| Intake & RoE | `references/intake-and-roe.md` | Sebelum eksekusi: izin, scope, kredensial, stop condition |
+| Mobile E2E | `references/mobile-e2e.md` | Android/iOS, ADB MuMu, `qa_ui.py`, Appium/XCTest |
+| Web E2E | `references/web-e2e.md` | Browser/Playwright, a11y, responsive, auth |
+| API Testing | `references/api-testing.md` | REST/JSON, authz, fuzz aman, rate limit |
+| Security Pentest | `references/security-pentest.md` | MASVS/ASVS, static+dynamic, MITM/Frida, CVSS |
+| Network Assessment | `references/network-assessment.md` | Proxy+CA, TLS/header, inventaris endpoint, throttling |
+| Performance | `references/performance.md` | Startup, jank, PSS/CPU, monkey/soak, k6/Lighthouse |
+| Reporting | `references/reporting.md` | Satu laporan gabungan, triage.json, redaction, DOCX |
+
+**Keputusan pelaporan:** jangan membuat `laporan-pentest.docx`, `network-assessment.docx`, atau `performance-baseline.xlsx` terpisah. Satu file `Laporan-[TARGET]-v[VER]-[TANGGAL].docx` berisi functional + security + network + performance + risk register. Source of truth temuan: `ai/triage.json`.
+
+Script pembantu: `scripts/qa_ui.py`, `scripts/redact.py`, `scripts/triage_schema.json`. Template: `templates/`.
 
 ---
 
@@ -143,7 +164,7 @@ Hasil nyata: `1 passing` — Test Mode → login dari env → Home 4 tab.
 - **Wajib Masuk ke Test Mode Terlebih Dahulu Sebelum Melakukan Login/Testing**:
   1. Pada halaman login awal aplikasi mobile DCT, klik ikon **titik 3** (di pojok kanan atas).
   2. Klik toggle/switch **Test Mode**.
-  3. Masukkan PIN Test Mode: `789123` lalu klik **Submit**.
+  3. Masukkan PIN Test Mode (dari env/local file, mis. `QA_TEST_MODE_PIN`) lalu klik **Submit**.
   4. Tekan tombol **Back** untuk kembali ke halaman login.
   5. Pastikan aplikasi berada dalam mode testing sebelum memasukkan kredensial login atau mengeksekusi skenario uji.
 
