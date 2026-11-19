@@ -34,7 +34,7 @@ Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mo
 | Input | Sumber otomatis (urutan prioritas) |
 |---|---|
 | `TARGET_URL` | argumen perintah → dokumen pendukung (FSD/PRD/User Guide/Test Scripts/config di workspace) → **tanya sekali** kalau tidak ada sumber |
-| `QA_USER` / `QA_PASS` / `QA_TEST_MODE_PIN` / OTP test | file lokal `.env.qa` atau `qa-credentials.local.json` di workspace → jangan diminta di chat → jangan ditulis ke laporan |
+| `QA_USER` / `QA_PASS` / `QA_TEST_MODE_PIN` / OTP test | file lokal `.env.qa` atau `qa-credentials.local.json` di workspace → jangan diminta di chat. **Identitas, password, PIN, dan OTP akun uji ditampilkan di laporan internal**; yang tetap `[REDACTED]`: NIK, nomor HP, token pihak ketiga, chat ID |
 | serial ADB | `mumu-cli info` → `adb_port` hasil deteksi, bukan hardcode |
 | package / APK | argumen → APK di workspace → `pm list packages` / `dumpsys` |
 | test case & ekspektasi | dokumen pendukung → generate case otomatis |
@@ -43,13 +43,15 @@ Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mo
 
 **Pelabelan hasil:** setiap case beri `PASS` / `FAIL` / `BLOCKED`. Kalau ada `BLOCKED`, **jangan** klaim "E2E penuh lolos" — tulis di Bab Batasan. Checklist testability: auth deterministik, akun uji + OTP test, data bisa di-reset, selector stabil (`resource-id`/`content-desc`/`data-testid`), network/TLS terkendali, matrix device, dan asersi UI + backend.
 
+**Akun uji di laporan:** cantumkan secara eksplisit identitas/role akun, sumbernya (dokumen atau `.env.qa`), metode login (login interaktif / sesi aktif), **password, PIN Test Mode, dan OTP yang dipakai**. Karena lambannya satu tim/perusahaan, kredensial uji ini tidak disensor di laporan internal. Tetap sensor NIK, nomor HP, token pihak ketiga (bot/API), dan chat ID. Kalau kredensial memang tidak tersedia atau tidak dipakai, tulis terus terang "tidak disediakan / tidak dieksekusi" — jangan mengarang nilai.
+
 ---
 
 ## 0. GUARDRAIL WAJIB (LEGAL & SAFETY)
 - **Izin tertulis**: Jalankan pentest/scan HANYA pada target milik sendiri atau yang memiliki authorization/scope tertulis (URL, IP, hostname, APK/IPA, akun uji). Jika tidak ada izin, berhenti dan minta konfirmasi.
 - **Batasi scope**: Tidak boleh memindai host di luar daftar yang disetujui. Tidak boleh melakukan eksploitasi destruktif, DDoS, ransomware, defacement, atau penghapusan data produksi.
 - **Mode aman default**: Gunakan probe deteksi (payload non-destruktif, scan pasif/ringan, validasi header/konfigurasi). Eksploitasi aktif hanya boleh setelah user menyetujui langkah dan tersedia backup/rollback.
-- **Data sensitif**: Jangan simpan token, password, KTP, atau data pribadi asli di artifact. Redact secret di log dan laporan.
+- **Data sensitif**: Password, PIN Test Mode, dan OTP akun uji **boleh dicantumkan di laporan internal tim**. Yang tetap wajib disensor: NIK, nomor HP, token pihak ketiga (bot/API), chat ID, dan data pribadi lain di luar akun uji.
 - **Production gate**: Jika target adalah produksi dan ada risiko outage/perubahan data, minta approval eksplisit sebelum aksi yang mengubah state.
 - **Audit trail**: Setiap aksi tercatat di `hasil-test/ai/audit-log.jsonl` (waktu, target, tool, hasil, keputusan).
 
