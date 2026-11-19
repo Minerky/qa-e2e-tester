@@ -69,15 +69,20 @@ Untuk Mode 5 dan Mode 6, **guardrail bagian 0 wajib dipenuhi sebelum eksekusi**.
 
 ### A0. Protokol Android via ADB & MuMu Emulator (Mode Terlihat / Live)
 1. **Jalankan MuMu dalam mode terlihat**: buka jendela GUI MuMu Player, jangan di-minimize/headless/background saat demo. Set resolusi minimal `1080x1920`, DPI `320`, dan matikan mode silent agar setiap tap/swipe kelihatan.
-2. **Aktifkan ADB**: di MuMu buka *Settings → ADB* (atau `设置 → ADB`) dan pastikan ADB debugging aktif. Port bawaan yang umum: instance pertama `127.0.0.1:7555`, kedua `7557`, ketiga `7559` (inkremen +2). Jika berbeda, cek menu ADB emulator atau `netstat -ano | findstr LISTENING`.
-3. **Hubungkan**:
+2. **Aktifkan ADB & temukan port sebenarnya**: di MuMu buka *Settings → ADB* (atau `设置 → ADB`) dan pastikan ADB debugging aktif. **Jangan mengasumsikan port `7555`** — versi MuMu terbaru (mis. MuMu Player 15 / `Netease\MuMuPlayer`) memakai port lain. Tanyakan langsung ke CLI MuMu:
    ```powershell
-   adb kill-server
-   adb start-server
-   adb connect 127.0.0.1:7555
-   adb devices
+   & "C:\Program Files\Netease\MuMuPlayer\nx_main\mumu-cli.exe" info --vmindex 0
    ```
-   Status harus `device`. Jika `unauthorized`, klik **Allow** di jendela MuMu. Jika `offline`, ulangi `adb disconnect 127.0.0.1:7555` lalu connect lagi.
+   Field `adb_port` pada output JSON adalah port yang dipakai (contoh nyata: `16384`). Port lama `7555/7557/7559` hanya berlaku pada MuMu generasi lama. Alternatif lain: `netstat -ano | findstr LISTENING`.
+3. **Hubungkan** (pakai `adb.exe` bawaan MuMu agar versi client/server cocok):
+   ```powershell
+   $adb = "C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe"
+   & $adb kill-server
+   & $adb start-server
+   & $adb connect 127.0.0.1:16384
+   & $adb devices
+   ```
+   Status harus `device`. Jika `unauthorized`, klik **Allow** di jendela MuMu. Jika `offline`, ulangi `& $adb disconnect 127.0.0.1:16384` lalu connect lagi. Ganti `16384` dengan `adb_port` dari langkah 2.
 4. **Pasang/verifikasi app**:
    ```powershell
    adb install -r app.apk
@@ -89,11 +94,16 @@ Untuk Mode 5 dan Mode 6, **guardrail bagian 0 wajib dipenuhi sebelum eksekusi**.
    - Catatan: MuMu adalah emulator Android; skenario iOS tetap memakai simulator Xcode/device asli (bagian 3D).
 6. **Rekam bukti**:
    ```powershell
-   adb shell screenrecord /sdcard/test.mp4
-   adb pull /sdcard/test.mp4 hasil-test/evidence/android/<skenario>.mp4
-   adb exec-out screencap -p > hasil-test/evidence/android/<id>.png
-   adb logcat -v time > hasil-test/evidence/android/logcat.txt
+   $adb = "C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe"
+   $serial = "127.0.0.1:16384"
+   & $adb -s $serial shell screenrecord --time-limit 30 /sdcard/test.mp4
+   & $adb -s $serial pull /sdcard/test.mp4 hasil-test/evidence/android/<skenario>.mp4
+   # PENTING: jangan pakai `>` PowerShell untuk PNG (merusak biner).
+   & $adb -s $serial shell screencap -p /sdcard/shot.png
+   & $adb -s $serial pull /sdcard/shot.png hasil-test/evidence/android/<id>.png
+   & $adb -s $serial logcat -v time > hasil-test/evidence/android/logcat.txt
    ```
+   Verifikasi PNG dengan `python -c "print(open(p,'rb').read(8))"` — harus `\x89PNG\r\n\x1a\n`.
    Boleh juga pakai fitur screen recorder bawaan MuMu.
 7. **Multi-instance**: ulangi `adb connect 127.0.0.1:<port>` untuk tiap instance, lalu bedakan `udid` dan `systemPort` di capabilities Appium.
 8. **Caveat**: jika aplikasi butuh Google Mobile Services/ARM khusus, pastikan versi MuMu yang dipakai mendukungnya; kalau tidak, gunakan perangkat fisik atau emulator lain.

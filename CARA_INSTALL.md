@@ -135,19 +135,28 @@ sdkmanager "platform-tools"
 
 ### 4.3 Hubungkan ADB
 
+**Jangan langsung pakai `7555`.** Tanyakan port sebenarnya ke CLI MuMu:
+
 ```powershell
-adb kill-server
-adb start-server
-adb connect 127.0.0.1:7555
-adb devices
-adb shell getprop ro.product.model
+& "C:\Program Files\Netease\MuMuPlayer\nx_main\mumu-cli.exe" info --vmindex 0
 ```
 
-- Port umum: instance pertama `7555`, kedua `7557`, ketiga `7559` (inkremen +2).
+Lihat field `adb_port` pada output JSON (contoh nyata di laptop ini: `16384`). MuMu generasi lama memakai `7555/7557/7559`, tetapi MuMu Player 15 tidak.
+
+```powershell
+$adb = "C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe"
+& $adb kill-server
+& $adb start-server
+& $adb connect 127.0.0.1:16384
+& $adb devices
+& $adb -s 127.0.0.1:16384 shell getprop ro.product.model
+```
+
+- Ganti `16384` dengan `adb_port` dari langkah di atas.
 - Status harus `device`.
 - `unauthorized` → klik **Allow** di jendela MuMu.
-- `offline` → jalankan `adb disconnect 127.0.0.1:7555`, lalu connect lagi.
-- Port berbeda? Cek menu ADB MuMu atau `netstat -ano | findstr LISTENING`.
+- `offline` → jalankan `& $adb disconnect 127.0.0.1:16384`, lalu connect lagi.
+- Pakai `adb.exe` bawaan MuMu agar versi client/server cocok.
 
 ### 4.4 Jalankan Appium
 
@@ -161,7 +170,7 @@ Contoh capability (detail lengkap ada di `SKILL.md` bagian 3A0):
 {
   "platformName": "Android",
   "appium:automationName": "UiAutomator2",
-  "appium:udid": "127.0.0.1:7555",
+  "appium:udid": "127.0.0.1:16384",
   "appium:app": "C:\\path\\ke\\app.apk",
   "appium:noReset": false,
   "appium:newCommandTimeout": 120
@@ -180,10 +189,14 @@ adb shell input text "halo"
 ### 4.5 Rekam bukti otomasi
 
 ```powershell
-adb shell screenrecord /sdcard/test.mp4
-adb pull /sdcard/test.mp4 hasil-test/evidence/android/demo.mp4
-adb exec-out screencap -p > hasil-test/evidence/android/step-01.png
-adb logcat -v time > hasil-test/evidence/android/logcat.txt
+$adb = "C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe"
+$serial = "127.0.0.1:16384"
+& $adb -s $serial shell screenrecord --time-limit 30 /sdcard/test.mp4
+& $adb -s $serial pull /sdcard/test.mp4 hasil-test/evidence/android/demo.mp4
+# PENTING: jangan pakai `>` PowerShell untuk PNG (merusak biner)
+& $adb -s $serial shell screencap -p /sdcard/shot.png
+& $adb -s $serial pull /sdcard/shot.png hasil-test/evidence/android/step-01.png
+& $adb -s $serial logcat -v time > hasil-test/evidence/android/logcat.txt
 ```
 
 Bisa juga pakai fitur screen recorder bawaan MuMu.
