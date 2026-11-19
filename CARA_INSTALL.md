@@ -65,8 +65,11 @@ Lalu di laptop baru, terapkan patch setelah clone:
 
 ```powershell
 cd "$HOME\.config\opencode\skills\qa-e2e-tester"
-git am patches/*.patch
+$patches = Get-ChildItem .\patches -Filter *.patch | Sort-Object Name | ForEach-Object { $_.FullName }
+git am $patches
 ```
+
+Catatan: di PowerShell, `git am patches/*.patch` tidak selalu ke-expand, jadi pakai `Get-ChildItem` seperti di atas.
 
 ### macOS / Linux (Terminal)
 
