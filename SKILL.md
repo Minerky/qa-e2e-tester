@@ -193,6 +193,7 @@ Saat melakukan pengujian web, ikuti urutan perintah Playwright MCP berikut:
 4. **Coverage wajib**: onboarding, login/logout, Face ID/Touch ID & fallback PIN, izin notifikasi/kamera/lokasi, deep link/universal link, foreground-background-foreground, keyboard & autocorrect, safe area/notch, dark mode, orientasi, dan lokalifikasi.
 5. **Bukti**: screenshot per langkah ke `hasil-test/evidence/ios/`, log `xcrun simctl spawn booted log stream` atau Appium log ke `hasil-test/evidence/ios/device.log`.
 6. **Script hasil**: `hasil-test/tests/ios/<app>.spec.ts` (Appium + WebdriverIO) atau `<App>UITests.swift` untuk XCUITest.
+7. **Template siap pakai**: `templates/ios_xcuitest.spec.ts` + `templates/wdio.ios.conf.ts`. **Jangan klaim tervalidasi** sebelum dijalankan di macOS + Xcode — mesin referensi Windows hanya bisa menyiapkan template, bukan membuktikan eksekusinya.
 
 ### E. Protokol Pentest Mobile (Android & iOS)
 **Prasyarat: izin tertulis sesuai bagian 0.** Gunakan akun uji, bukan akun produksi.
