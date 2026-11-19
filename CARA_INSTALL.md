@@ -36,7 +36,7 @@ C:\Users\<NAMA_YOU>\.config\opencode\skills\qa-e2e-tester
 C:\Users\<NAMA_BARU>\.config\opencode\skills\qa-e2e-tester
 ```
 
-Folder tersebut sudah berisi `SKILL.md`, `CARA_INSTALL.md`, `templates/` (runner Appium/WDIO siap pakai), dan `patches/`. Setelah disalin, lanjut ke **bagian 4 (Konfigurasi MuMu)**.
+Folder tersebut cukup berisi `SKILL.md` dan `CARA_INSTALL.md`. Setelah disalin, lanjut ke **bagian 4 (Konfigurasi MuMu)**.
 
 ### Opsi B — Clone dari GitHub + terapkan patch lokal
 
@@ -54,22 +54,7 @@ python -m pip install playwright openpyxl python-docx pillow
 python -m playwright install chromium
 ```
 
-Perubahan lokal belum ada di repository GitHub. Dari laptop lama, salin folder `patches/` (atau buat ulang):
-
-```powershell
-cd "$HOME\.config\opencode\skills\qa-e2e-tester"
-git format-patch origin/main..HEAD -o patches
-```
-
-Lalu di laptop baru, terapkan patch setelah clone:
-
-```powershell
-cd "$HOME\.config\opencode\skills\qa-e2e-tester"
-$patches = Get-ChildItem .\patches -Filter *.patch | Sort-Object Name | ForEach-Object { $_.FullName }
-git am $patches
-```
-
-Catatan: di PowerShell, `git am patches/*.patch` tidak selalu ke-expand, jadi pakai `Get-ChildItem` seperti di atas.
+Repository GitHub sudah berisi versi terbaru — tidak perlu patch atau salinan folder tambahan.
 
 ### macOS / Linux (Terminal)
 
@@ -78,10 +63,6 @@ mkdir -p "$HOME/.config/opencode/skills"
 git clone https://github.com/Minerky/qa-e2e-tester.git "$HOME/.config/opencode/skills/qa-e2e-tester"
 pip3 install playwright openpyxl python-docx pillow
 playwright install chromium
-
-# Jika memakai patch dari laptop lama:
-cd "$HOME/.config/opencode/skills/qa-e2e-tester"
-git am patches/*.patch
 ```
 
 ---
@@ -198,16 +179,15 @@ adb shell input text "halo"
 
 ### 4.4b Runner WebdriverIO (script `.spec.ts` yang siap jalan)
 
-Salin 3 file dari folder `templates/` skill ke folder output (mis. `hasil-test-<app>/automation/`):
+Buat file `wdio.conf.ts`, `android_mumu.spec.ts`, dan `package.json` di folder output (mis. `hasil-test-<app>/automation/`), lalu:
 
 ```powershell
-$skill="$HOME\.config\opencode\skills\qa-e2e-tester\templates"
 $out="hasil-test-<app>\automation"
-New-Item -ItemType Directory -Force -Path $out | Out-Null
-Copy-Item "$skill\android_mumu.spec.ts","$skill\wdio.conf.ts","$skill\package.json" $out
 cd $out
 npm install
 ```
+
+Isi konfigurasi mengikuti petunjuk di `SKILL.md` bagian 3A0/3A.
 
 Jalankan dengan kredensial dari environment — **jangan pernah menulis NIK/password ke file, spec, atau laporan**:
 
@@ -250,13 +230,7 @@ cd ~/.config/opencode/skills/qa-e2e-tester
 git pull --rebase origin main
 ```
 
-Karena skill ini punya commit lokal, gunakan `--rebase`. Jika terjadi konflik, simpan dulu perubahan lokal:
-
-```bash
-git format-patch origin/main..HEAD -o patches
-```
-
-Lalu selesaikan konflik atau kloning ulang dan terapkan patch dengan `git am patches/*.patch`.
+Gunakan `--rebase` agar riwayat tetap linier. Jika ada perubahan lokal, commit dulu atau simpan cadangan sebelum pull — jangan mengandalkan patch.
 
 ---
 

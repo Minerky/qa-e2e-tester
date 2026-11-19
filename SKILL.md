@@ -9,24 +9,13 @@ Skill ini adalah standar operasional pengujian kualitas perangkat lunak (Softwar
 
 ---
 
-## 0.1 MODUL REFERENSI TERPADU (2026-11-19)
+## 0.1 DISIPLIN TERPADU (2026-11-19)
 
-Gunakan modul ini sesuai disiplin yang aktif. **Semua disiplin tetap masuk SATU laporan DOCX gabungan.**
-
-| Modul | File | Dipakai saat |
-|---|---|---|
-| Intake & RoE | `references/intake-and-roe.md` | Sebelum eksekusi: izin, scope, kredensial, stop condition |
-| Mobile E2E | `references/mobile-e2e.md` | Android/iOS, ADB MuMu, `qa_ui.py`, Appium/XCTest |
-| Web E2E | `references/web-e2e.md` | Browser/Playwright, a11y, responsive, auth |
-| API Testing | `references/api-testing.md` | REST/JSON, authz, fuzz aman, rate limit |
-| Security Pentest | `references/security-pentest.md` | MASVS/ASVS, static+dynamic, MITM/Frida, CVSS |
-| Network Assessment | `references/network-assessment.md` | Proxy+CA, TLS/header, inventaris endpoint, throttling |
-| Performance | `references/performance.md` | Startup, jank, PSS/CPU, monkey/soak, k6/Lighthouse |
-| Reporting | `references/reporting.md` | Satu laporan gabungan, triage.json, redaction, DOCX |
+Skill ini **satu file**. Semua disiplin — Intake/RoE, Mobile E2E, Web E2E, API Testing, Security Pentest, Network Assessment, Performance, dan Reporting — dijalankan dari instruksi di bawah. **Semua disiplin tetap masuk SATU laporan DOCX gabungan.**
 
 **Keputusan pelaporan:** jangan membuat `laporan-pentest.docx`, `network-assessment.docx`, atau `performance-baseline.xlsx` terpisah. Satu file `Laporan-[TARGET]-v[VER]-[TANGGAL].docx` berisi functional + security + network + performance + risk register. Source of truth temuan: `ai/triage.json`.
 
-Script pembantu: `scripts/qa_ui.py`, `scripts/redact.py`, `scripts/triage_schema.json`. Template: `templates/`.
+> **Instalasi di laptop baru** ada di `CARA_INSTALL.md` — file pendamping yang dibaca manusia, bukan instruksi untuk agent.
 
 ### 0.2 CARA MEMERINTAHKAN — MODE `e2e`
 
@@ -34,8 +23,8 @@ Satu skill, dua mode E2E yang bisa dipanggil langsung. Keduanya **wajib** masuk 
 
 | Perintah | Modul | Eksekusi |
 |---|---|---|
-| `e2e web [url]` | `references/web-e2e.md` | Playwright (tool browser langsung atau template CLI): auth, alur inti, negative/boundary/injection, a11y WCAG 2.2 AA, responsive, console/pageerror = 0. URL diambil dari perintah **atau** dokumen pendukung — jangan mengarang. |
-| `e2e mobile [serial\|app]` | `references/mobile-e2e.md` + `scripts/qa_ui.py` | ADB MuMu/device fisik: Test Mode, dump XML → tap/text, screenshot, activity, logcat. Serial/package di-auto-resolve dari `mumu-cli info` dan APK. |
+| `e2e web [url]` | Playwright (tool browser langsung): auth, alur inti, negative/boundary/injection, a11y WCAG 2.2 AA, responsive, console/pageerror = 0. URL diambil dari perintah **atau** dokumen pendukung — jangan mengarang. |
+| `e2e mobile [serial\|app]` | ADB MuMu/device fisik: Test Mode, dump XML → tap/text, screenshot, activity, logcat. Serial/package di-auto-resolve dari `mumu-cli info` dan APK. |
 | `e2e all` | keduanya | Jalankan web lalu mobile, gabungkan temuan ke satu triage + satu DOCX. |
 
 Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mobile e2e`, `test web <url>`.
@@ -48,11 +37,11 @@ Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mo
 | `QA_USER` / `QA_PASS` / `QA_TEST_MODE_PIN` / OTP test | file lokal `.env.qa` atau `qa-credentials.local.json` di workspace → jangan diminta di chat → jangan ditulis ke laporan |
 | serial ADB | `mumu-cli info` → `adb_port` hasil deteksi, bukan hardcode |
 | package / APK | argumen → APK di workspace → `pm list packages` / `dumpsys` |
-| test case & ekspektasi | dokumen pendukung → generate case otomatis (lihat `references/intake-and-roe.md`) |
+| test case & ekspektasi | dokumen pendukung → generate case otomatis |
 
 **Gate sebelum eksekusi:** target & akun uji berhasil di-resolve; environment UAT/staging (atau ada approval tertulis); data uji bisa di-reset; kredensial tidak pernah muncul di chat/log/DOCX. RoE dicatat dari dokumen; kalau approval tidak ada, **tanya sekali** sebelum aksi yang mengubah state — jangan mengarang dan jangan berhenti dengan formulir panjang.
 
-**Pelabelan hasil:** setiap case beri `PASS` / `FAIL` / `BLOCKED`. Kalau ada `BLOCKED`, **jangan** klaim "E2E penuh lolos" — tulis di Bab Batasan. Checklist testability ada di `references/web-e2e.md` §10 dan `references/mobile-e2e.md` §8.
+**Pelabelan hasil:** setiap case beri `PASS` / `FAIL` / `BLOCKED`. Kalau ada `BLOCKED`, **jangan** klaim "E2E penuh lolos" — tulis di Bab Batasan. Checklist testability: auth deterministik, akun uji + OTP test, data bisa di-reset, selector stabil (`resource-id`/`content-desc`/`data-testid`), network/TLS terkendali, matrix device, dan asersi UI + backend.
 
 ---
 
@@ -170,7 +159,7 @@ Hasil nyata: `1 passing` — Test Mode → login dari env → Home 4 tab.
    ```
    SDK minimal cukup berisi `platform-tools\adb.exe` + `AdbWinApi.dll` + `AdbWinUsbApi.dll`
    (salinkan ketiganya dari folder `nx_main` MuMu; tanpa DLL itu Appium tidak melihat device).
-2. **Salin template** dari `templates/` ke folder output: `android_mumu.spec.ts`, `wdio.conf.ts`, `package.json`. Lalu `npm install`.
+2. **Buat spec WDIO** di folder output (`automation/wdio.conf.ts`, `android.spec.ts`, `package.json`), lalu `npm install`.
 3. **Jalankan** (kredensial HANYA lewat env, jangan pernah ditulis ke file/laporan):
    ```powershell
    $env:QA_NIK='NIK_UJI'
@@ -240,7 +229,7 @@ Saat melakukan pengujian web, ikuti urutan perintah Playwright MCP berikut:
 4. **Coverage wajib**: onboarding, login/logout, Face ID/Touch ID & fallback PIN, izin notifikasi/kamera/lokasi, deep link/universal link, foreground-background-foreground, keyboard & autocorrect, safe area/notch, dark mode, orientasi, dan lokalifikasi.
 5. **Bukti**: screenshot per langkah ke `hasil-test/evidence/ios/`, log `xcrun simctl spawn booted log stream` atau Appium log ke `hasil-test/evidence/ios/device.log`.
 6. **Script hasil**: `hasil-test/tests/ios/<app>.spec.ts` (Appium + WebdriverIO) atau `<App>UITests.swift` untuk XCUITest.
-7. **Template siap pakai**: `templates/ios_xcuitest.spec.ts` + `templates/wdio.ios.conf.ts`. **Jangan klaim tervalidasi** sebelum dijalankan di macOS + Xcode — mesin referensi Windows hanya bisa menyiapkan template, bukan membuktikan eksekusinya.
+7. **Script iOS dibuat saat eksekusi.** **Jangan klaim tervalidasi** sebelum dijalankan di macOS + Xcode — mesin referensi Windows hanya bisa menyiapkan script, bukan membuktikan eksekusinya.
 
 ### E. Protokol Pentest Mobile (Android & iOS)
 **Prasyarat: izin tertulis sesuai bagian 0.** Gunakan akun uji, bukan akun produksi.
@@ -441,3 +430,14 @@ ws.conditional_formatting.add(
 )
 wb.save("hasil-test/risk-register.xlsx")
 ```
+
+---
+
+## 7. RIWAYAT PERUBAHAN
+
+Riwayat lengkap ada di `git log` repository. Ringkasan terbaru:
+
+- Dua file saja: `SKILL.md` (instruksi agent) + `CARA_INSTALL.md` (panduan manusia).
+- Auto-resolve input dari perintah + dokumen pendukung; user tidak perlu set env.
+- Routing perintah `e2e web` / `e2e mobile` / `e2e all`.
+- Modul terpadu quality/security/network/performance dalam satu laporan DOCX.
