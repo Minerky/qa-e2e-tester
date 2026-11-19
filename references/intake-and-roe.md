@@ -1,6 +1,6 @@
 # Intake & Rules of Engagement (RoE)
 
-> **Gate awal: jangan jalankan satu pun perintah pengujian sebelum questionnaire lengkap dan Rules of Engagement disetujui tertulis oleh owner sistem.** Checklist ini mencegah pengujian masuk ke environment yang salah atau teknik yang tidak diizinkan.
+> **Gate awal — otomatis dari dokumen, bukan formulir yang disuruh diisi user.** Sebelum eksekusi, agent mengisi questionnaire & RoE di bawah dari perintah + dokumen pendukung di workspace (FSD/PRD/User Guide/Test Scripts/approval). Tanya user **hanya sekali** untuk field yang benar-benar tidak ditemukan. Jangan jalankan aksi yang mengubah state sebelum environment & teknik terverifikasi dari dokumen tersebut.
 
 ## 1. Questionnaire Authorization & Scope
 
@@ -99,6 +99,20 @@ evidence/**/*.raw.*
 results/triage.raw.json
 *k6-raw.json
 ```
+
+### 4.1 Auto-resolve dari dokumen pendukung
+
+Agent tidak menunggu user meng-set env atau menjawab 15 pertanyaan. Lacak sumber ini lebih dulu:
+
+| Yang dicari | Dari dokumen | Fallback lokal |
+|---|---|---|
+| Base URL / host | FSD, PRD, config, Postman collection, `README` | argumen perintah |
+| Akun uji & role | User Guide, Test Scripts, lampiran approval | `.env.qa` |
+| PIN Test Mode / OTP | User Guide, catatan UAT | `QA_TEST_MODE_PIN`, `QA_OTP_SEED` di `.env.qa` |
+| Test case & ekspektasi | FSD/PRD/User Guide/Test Scripts | generate dari perilaku aplikasi |
+| Scope & approval | tiket/email approval di workspace | **tanya sekali** |
+
+Simpan hasil resolusi (tanpa nilai rahasia) ke `ai/audit-log.jsonl` sebagai keputusan, bukan kredensial.
 
 ## 5. Daftar Target
 

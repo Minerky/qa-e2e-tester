@@ -1,8 +1,10 @@
 # Web E2E (Playwright)
 
-> Web app browser adalah **disiplin setara mobile**, bukan lampiran. Target web belum ditentukan pada sesi ini — minta `TARGET_URL` dari user. Jangan mengarang URL.
+> Web app browser adalah **disiplin setara mobile**, bukan lampiran. `TARGET_URL` di-auto-resolve dari argumen perintah atau dokumen pendukung di workspace; **jangan mengarang URL**, dan tanya user hanya kalau tidak ada sumber sama sekali.
 
 ## 0. Prasyarat (Windows)
+
+> **Eksekusi langsung:** tool Playwright browser (navigate/snapshot/click/type/...) bisa dipakai tanpa `npm install`. Blok di bawah hanya diperlukan untuk suite CLI yang reproducible (`npx playwright test`).
 
 ```powershell
 node -v; npm -v

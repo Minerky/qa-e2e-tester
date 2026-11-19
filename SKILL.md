@@ -34,17 +34,23 @@ Satu skill, dua mode E2E yang bisa dipanggil langsung. Keduanya **wajib** masuk 
 
 | Perintah | Modul | Eksekusi |
 |---|---|---|
-| `e2e web <url>` | `references/web-e2e.md` | Playwright: auth via env, alur inti, negative/boundary/injection, a11y WCAG 2.2 AA, responsive, console/pageerror = 0. Minta `TARGET_URL` jika belum ada — jangan mengarang URL. |
-| `e2e mobile <serial\|app>` | `references/mobile-e2e.md` + `scripts/qa_ui.py` | ADB MuMu/device fisik: Test Mode via env, dump XML → tap/text, screenshot, activity, logcat. Serial dari `mumu-cli info`, bukan hardcode. |
+| `e2e web [url]` | `references/web-e2e.md` | Playwright (tool browser langsung atau template CLI): auth, alur inti, negative/boundary/injection, a11y WCAG 2.2 AA, responsive, console/pageerror = 0. URL diambil dari perintah **atau** dokumen pendukung — jangan mengarang. |
+| `e2e mobile [serial\|app]` | `references/mobile-e2e.md` + `scripts/qa_ui.py` | ADB MuMu/device fisik: Test Mode, dump XML → tap/text, screenshot, activity, logcat. Serial/package di-auto-resolve dari `mumu-cli info` dan APK. |
 | `e2e all` | keduanya | Jalankan web lalu mobile, gabungkan temuan ke satu triage + satu DOCX. |
 
 Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mobile e2e`, `test web <url>`.
 
-**Gate sebelum eksekusi (berlaku untuk dua mode):**
-1. `TARGET_URL` (web) / serial + package (mobile) jelas.
-2. Kredensial, PIN Test Mode, dan OTP test tersedia di env/local file — bukan di chat atau laporan.
-3. Data uji bisa di-reset; ada test backend/akun uji (bukan produksi).
-4. Scope & RoE disetujui — lihat `references/intake-and-roe.md`.
+**Auto-resolve — user cukup memerintah + menyediakan dokumen pendukung.** User **tidak** perlu mengubah kode atau men-set env manual. Agent mencari sendiri:
+
+| Input | Sumber otomatis (urutan prioritas) |
+|---|---|
+| `TARGET_URL` | argumen perintah → dokumen pendukung (FSD/PRD/User Guide/Test Scripts/config di workspace) → **tanya sekali** kalau tidak ada sumber |
+| `QA_USER` / `QA_PASS` / `QA_TEST_MODE_PIN` / OTP test | file lokal `.env.qa` atau `qa-credentials.local.json` di workspace → jangan diminta di chat → jangan ditulis ke laporan |
+| serial ADB | `mumu-cli info` → `adb_port` hasil deteksi, bukan hardcode |
+| package / APK | argumen → APK di workspace → `pm list packages` / `dumpsys` |
+| test case & ekspektasi | dokumen pendukung → generate case otomatis (lihat `references/intake-and-roe.md`) |
+
+**Gate sebelum eksekusi:** target & akun uji berhasil di-resolve; environment UAT/staging (atau ada approval tertulis); data uji bisa di-reset; kredensial tidak pernah muncul di chat/log/DOCX. RoE dicatat dari dokumen; kalau approval tidak ada, **tanya sekali** sebelum aksi yang mengubah state — jangan mengarang dan jangan berhenti dengan formulir panjang.
 
 **Pelabelan hasil:** setiap case beri `PASS` / `FAIL` / `BLOCKED`. Kalau ada `BLOCKED`, **jangan** klaim "E2E penuh lolos" — tulis di Bab Batasan. Checklist testability ada di `references/web-e2e.md` §10 dan `references/mobile-e2e.md` §8.
 

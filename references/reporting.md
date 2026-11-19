@@ -106,5 +106,6 @@ evidence/raw/                                      <- tidak dilampirkan
 - Folder hasil hanya berisi **satu DOCX**. Semua bukti, skrip, dan triage masuk satu subfolder `pendukung/` (atau `evidence/`), bukan file hasil tambahan.
 - Risk register dan daftar test case **disisipkan ke dalam DOCX**, bukan file `.xlsx`/`.md` terpisah.
 - Mode `e2e web`, `e2e mobile`, dan `e2e all` **tidak** membuat laporan per mode. Semua temuan dari kedua mode masuk satu `ai/triage.json` → satu DOCX.
+- Target/kredensial di-auto-resolve dari perintah + dokumen pendukung; kredensial **tidak pernah** ditulis ke DOCX — yang dicantumkan adalah keputusan resolusinya (`[REDACTED]`).
 - Laporkan status `PASS` / `FAIL` / `BLOCKED` per case. `BLOCKED` wajib dicantumkan di Bab Batasan dan tidak boleh dihitung sebagai `PASS`.
 - **Jangan** membuat laporan terpisah per disiplin kecuali diminta eksplisit.

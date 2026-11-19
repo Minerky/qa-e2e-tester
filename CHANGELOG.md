@@ -2,6 +2,24 @@
 
 Format: `## [YYYY-MM-DD] — Judul`, dengan `Added / Changed / Fixed / Decided / Notes`. Entri terbaru di atas.
 
+## [2026-11-19] — Auto-resolve input: user cukup perintah + dokumen pendukung
+
+### Added
+
+- Aturan **auto-resolve** di `SKILL.md` §0.2: URL, kredensial/PIN/OTP, serial ADB, package, dan test case diambil dari perintah + dokumen pendukung workspace. User tidak menyet env atau mengubah kode.
+- `references/intake-and-roe.md` §4.1: tabel sumber auto-resolve dari FSD/PRD/User Guide/Test Scripts/approval.
+- Catatan `references/web-e2e.md`: eksekusi langsung lewat tool Playwright browser tanpa `npm install`; template CLI tetap dipakai untuk suite reproducible.
+
+### Changed
+
+- Perintah jadi `e2e web [url]` / `e2e mobile [serial|app]` (argumen opsional).
+- Intake & RoE tidak lagi menunggu questionnaire diisi user; diisi dari dokumen, tanya hanya untuk yang benar-benar missing.
+- `references/reporting.md`: kredensial hasil auto-resolve tidak masuk DOCX, cukup keputusan resolusinya.
+
+### Decided
+
+- "Overpowered" = user perintah + dokumen, agent yang resolve dan jalan — bukan user yang konfigurasi tool.
+
 ## [2026-11-19] — Mode perintah `e2e web` / `e2e mobile` / `e2e all` + testability checklist
 
 ### Added
