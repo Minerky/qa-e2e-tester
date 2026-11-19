@@ -14,10 +14,10 @@ Pastikan perangkat baru sudah terpasang:
 - **Untuk otomasi Android dengan MuMu**:
   - MuMu Player: [https://www.mumuplayer.com/](https://www.mumuplayer.com/)
   - ADB / Android Platform-Tools: [https://developer.android.com/studio/releases/platform-tools](https://developer.android.com/studio/releases/platform-tools)
-  - Node.js 20 LTS: [https://nodejs.org/](https://nodejs.org/)
-  - Appium 2 + driver `UiAutomator2`
-  - Java JDK 17 (misalnya Microsoft OpenJDK)
-  - Android SDK dengan `ANDROID_HOME` ter-set (dibutuhkan driver UiAutomator2)
+  - Node.js 20 LTS atau lebih baru (terverifikasi: Node 26): [https://nodejs.org/](https://nodejs.org/)
+  - Appium **4.x** + driver `UiAutomator2` **9.x** (terverifikasi: 4.0.0 / 9.2.2)
+  - Java **JDK 21** (Eclipse Temurin; terverifikasi 21.0.13). JDK 17 tidak lagi dipakai di mesin referensi.
+  - Android SDK minimal dengan `ANDROID_HOME` ter-set, berisi `platform-tools\adb.exe` + `AdbWinApi.dll` + `AdbWinUsbApi.dll` (salin 3 file itu dari folder `nx_main` MuMu — tanpa DLL, Appium gagal mendeteksi device)
 - **Untuk iOS**: macOS + Xcode. **MuMu tidak bisa menjalankan iOS**, jadi pakai simulator Xcode atau perangkat asli.
 
 ---
@@ -36,7 +36,7 @@ C:\Users\<NAMA_YOU>\.config\opencode\skills\qa-e2e-tester
 C:\Users\<NAMA_BARU>\.config\opencode\skills\qa-e2e-tester
 ```
 
-Folder tersebut sudah berisi `SKILL.md`, `CARA_INSTALL.md`, dan `patches/`. Setelah disalin, lanjut ke **bagian 4 (Konfigurasi MuMu)**.
+Folder tersebut sudah berisi `SKILL.md`, `CARA_INSTALL.md`, `templates/` (runner Appium/WDIO siap pakai), dan `patches/`. Setelah disalin, lanjut ke **bagian 4 (Konfigurasi MuMu)**.
 
 ### Opsi B — Clone dari GitHub + terapkan patch lokal
 
@@ -95,7 +95,7 @@ git am patches/*.patch
 2. Skill `qa-e2e-tester` terdeteksi otomatis. Jika belum, jalankan `/reload`.
 3. Coba instruksi:
    - *"Jalankan E2E web https://... berdasarkan FSD ini."*
-   - *"Jalankan smoke test APK di MuMu 127.0.0.1:7555 dengan jendela terlihat, rekam videonya."*
+   - *"Jalankan smoke test APK di MuMu 127.0.0.1:16384 dengan jendela terlihat, rekam videonya."* (ganti dengan `adb_port` mesinmu)
    - *"Pentest staging ini dan buatkan risk-register.xlsx + RISK_REPORT.docx."*
 
 ---
@@ -107,18 +107,22 @@ git am patches/*.patch
 ```powershell
 winget install Google.AndroidSDKPlatformTools
 winget install OpenJS.NodeJS.LTS
-winget install Microsoft.OpenJDK.17
+winget install EclipseAdoptium.Temurin.21.JDK
 
 npm install -g appium
 appium driver install uiautomator2
 appium driver doctor uiautomator2
 ```
 
-Set `ANDROID_HOME` (sesuaikan path SDK di mesin kamu):
+Set `JAVA_HOME`, `ANDROID_HOME`, dan `ANDROID_SDK_ROOT` (sesuaikan path di mesin kamu):
 
 ```powershell
-setx ANDROID_HOME "$env:LOCALAPPDATA\Android\Sdk"
+setx JAVA_HOME "C:\Program Files\Eclipse Adoptium\jdk-21.0.13.9-hotspot"
+setx ANDROID_HOME "$env:LOCALAPPDATA\android-sdk-minimal"
+setx ANDROID_SDK_ROOT "$env:LOCALAPPDATA\android-sdk-minimal"
 ```
+
+> Di mesin referensi, SDK sengaja minimal: hanya `platform-tools\adb.exe` + `AdbWinApi.dll` + `AdbWinUsbApi.dll` yang disalin dari `C:\Program Files\Netease\MuMuPlayer\nx_main\`. Ini cukup untuk Appium UiAutomator2. Tanpa dua DLL itu, `adb devices` bisa kosong walaupun MuMu sudah connect.
 
 Jika `ANDROID_HOME` belum ada, install **Android Studio → SDK Manager → Android SDK Command Line Tools**, lalu:
 
@@ -161,8 +165,14 @@ $adb = "C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe"
 ### 4.4 Jalankan Appium
 
 ```powershell
-appium --base-path /wd/hub
+$env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.0.13.9-hotspot'
+$env:ANDROID_HOME="$env:LOCALAPPDATA\android-sdk-minimal"
+$env:ANDROID_SDK_ROOT=$env:ANDROID_HOME
+$env:PATH="$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:PATH"
+appium server --port 4723 --base-path /wd/hub
 ```
+
+Cek siap: `Invoke-RestMethod http://127.0.0.1:4723/wd/hub/status` → `"ready": true`.
 
 Contoh capability (detail lengkap ada di `SKILL.md` bagian 3A0):
 
@@ -185,6 +195,30 @@ adb shell input tap 540 1200
 adb shell input swipe 540 1600 540 400
 adb shell input text "halo"
 ```
+
+### 4.4b Runner WebdriverIO (script `.spec.ts` yang siap jalan)
+
+Salin 3 file dari folder `templates/` skill ke folder output (mis. `hasil-test-<app>/automation/`):
+
+```powershell
+$skill="$HOME\.config\opencode\skills\qa-e2e-tester\templates"
+$out="hasil-test-<app>\automation"
+New-Item -ItemType Directory -Force -Path $out | Out-Null
+Copy-Item "$skill\android_mumu.spec.ts","$skill\wdio.conf.ts","$skill\package.json" $out
+cd $out
+npm install
+```
+
+Jalankan dengan kredensial dari environment — **jangan pernah menulis NIK/password ke file, spec, atau laporan**:
+
+```powershell
+$env:QA_NIK='NIK_UJI'
+$env:QA_PASS='password_uji'
+$env:QA_UDID='127.0.0.1:16384'   # gunakan adb_port dari bagian 4.3
+npx wdio run wdio.conf.ts
+```
+
+Hasil yang diharapkan: `1 passing`. Jika gagal, baca catatan jebakan di `SKILL.md` bagian 3A0.1 (`activateApp`, dialog izin, toggle idempoten, PIN yang scope ke dialog).
 
 ### 4.5 Rekam bukti otomasi
 
@@ -237,12 +271,14 @@ python -m playwright install chromium
 
 winget install Google.AndroidSDKPlatformTools
 winget install OpenJS.NodeJS.LTS
-winget install Microsoft.OpenJDK.17
+winget install EclipseAdoptium.Temurin.21.JDK
 npm install -g appium
 appium driver install uiautomator2
 
-adb connect 127.0.0.1:7555
-adb devices
+# JANGAN pakai 7555 — temukan port asli dulu (contoh: 16384)
+& "C:\Program Files\Netease\MuMuPlayer\nx_main\mumu-cli.exe" info --vmindex 0
+& "C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe" connect 127.0.0.1:<adb_port>
+& "C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe" devices
 
 opencode
 ```

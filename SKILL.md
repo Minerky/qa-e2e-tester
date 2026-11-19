@@ -1,6 +1,6 @@
 ---
 name: qa-e2e-tester
-description: Use when performing end-to-end (E2E) QA testing on web, Android, and iOS applications (via Playwright MCP, ADB with MuMu/physical devices, Appium/XCTest, with visible/live emulator sessions), testing backend & mobile APIs (REST/JSON/HTTP), pentesting authorized mobile/web/network targets with AI-assisted triage, testing from FSD/PRD/User Guide/Test Scripts, APK/IPA, or pure URL, handling DCT mobile apps with mandatory Test Mode (PIN 789123), generating automated test scripts (.spec.ts), and producing structured Word (.docx)/Markdown reports with exhaustive validation, risk scoring, and embedded screenshots.
+description: Use when performing end-to-end (E2E) QA testing on web, Android, and iOS applications (via Playwright MCP, ADB with MuMu/physical devices, Appium/WebdriverIO/XCTest with bundled runnable templates, with visible/live emulator sessions), testing backend & mobile APIs (REST/JSON/HTTP), pentesting authorized mobile/web/network targets with AI-assisted triage, testing from FSD/PRD/User Guide/Test Scripts, APK/IPA, or pure URL, handling DCT mobile apps with mandatory Test Mode (PIN 789123), generating automated test scripts (.spec.ts), and producing structured Word (.docx)/Markdown reports with exhaustive validation, risk scoring, and embedded screenshots.
 ---
 
 # Universal QA E2E Testing & Reporting Skill (`qa-e2e-tester`)
@@ -108,6 +108,37 @@ Untuk Mode 5 dan Mode 6, **guardrail bagian 0 wajib dipenuhi sebelum eksekusi**.
 7. **Multi-instance**: ulangi `adb connect 127.0.0.1:<port>` untuk tiap instance, lalu bedakan `udid` dan `systemPort` di capabilities Appium.
 8. **Caveat**: jika aplikasi butuh Google Mobile Services/ARM khusus, pastikan versi MuMu yang dipakai mendukungnya; kalau tidak, gunakan perangkat fisik atau emulator lain.
 
+### A0.1. Resep Appium + WebdriverIO yang TERVERIFIKASI (Android/MuMu)
+Gunakan ini jika butuh script `.spec.ts` yang benar-benar jalan, bukan sekadar contoh.
+Stack terverifikasi: **Appium 4.0.0**, driver **uiautomator2@9.2.2**, **JDK 21**, **Node 20+**, **WebdriverIO 10.x**.
+Hasil nyata: `1 passing` — Test Mode → login dari env → Home 4 tab.
+
+1. **Siapkan env & server** (sesuaikan path mesin):
+   ```powershell
+   $env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.0.13.9-hotspot'
+   $env:ANDROID_HOME="$env:LOCALAPPDATA\android-sdk-minimal"
+   $env:ANDROID_SDK_ROOT=$env:ANDROID_HOME
+   $env:PATH="$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:PATH"
+   appium server --port 4723 --base-path /wd/hub
+   ```
+   SDK minimal cukup berisi `platform-tools\adb.exe` + `AdbWinApi.dll` + `AdbWinUsbApi.dll`
+   (salinkan ketiganya dari folder `nx_main` MuMu; tanpa DLL itu Appium tidak melihat device).
+2. **Salin template** dari `templates/` ke folder output: `android_mumu.spec.ts`, `wdio.conf.ts`, `package.json`. Lalu `npm install`.
+3. **Jalankan** (kredensial HANYA lewat env, jangan pernah ditulis ke file/laporan):
+   ```powershell
+   $env:QA_NIK='NIK_UJI'
+   $env:QA_PASS='password_uji'
+   $env:QA_UDID='127.0.0.1:16384'
+   npx wdio run wdio.conf.ts
+   ```
+4. **Jebakan yang sudah diatasi di template** — jangan dihapus:
+   - `activateApp()` wajib; tanpa itu Appium bisa membuka home launcher MuMu, bukan aplikasi.
+   - Dialog izin/notifikasi bisa muncul **dua kali** (awal & setelah login); loop `tanganiDialogSistem()` sebelum dan sesudah login.
+   - Toggle Test Mode harus **idempoten** (`checked === 'true'` → skip). Klik kedua akan mematikan Test Mode.
+   - Field PIN dialog dan password login punya `resource-id` sama; **scope ke dialog** dengan XPath atau strict mode WebdriverIO error.
+   - Verifikasi NIK terbaca (`getText() === NIK`) sebelum klik login — Menangkap input yang salah tempat.
+5. **Bukti**: `saveScreenshot()` dari session WDIO lebih disukai daripada `adb screencap` saat demo, karena screenshot diambil pada momen asersi.
+
 ### A. Protokol Khusus Aplikasi Mobile DCT (Asset, Cargo, CDC, FLM, dll):
 - **Wajib Masuk ke Test Mode Terlebih Dahulu Sebelum Melakukan Login/Testing**:
   1. Pada halaman login awal aplikasi mobile DCT, klik ikon **titik 3** (di pojok kanan atas).
@@ -146,7 +177,7 @@ Saat melakukan pengujian web, ikuti urutan perintah Playwright MCP berikut:
    - Panggil `playwright_browser_console_messages(level: "info")` untuk mencatat error HTTP 404, 500, atau JS exception.
 
 ### D. Protokol Otomasi iOS (Appium / XCUITest)
-1. **Prasyarat**: macOS + Xcode (untuk simulator) atau real device dengan provisioning; Appium 2.x dengan driver `XCUITest`, atau XCTest/XCUITest native.
+1. **Prasyarat**: macOS + Xcode (untuk simulator) atau real device dengan provisioning; Appium 4.x dengan driver `XCUITest`, atau XCTest/XCUITest native.
 2. **Capabilities minimal**:
    ```json
    {
