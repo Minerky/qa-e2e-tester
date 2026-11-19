@@ -246,7 +246,14 @@ Format detail bug wajib mencantumkan screenshot visual:
 
 ## 5. GENERASI ARTIFAK OUTPUT PENGUJIAN
 
-Di akhir pengujian, selalu hasilkan artifak-artifak berikut di folder `hasil-test/`:
+Di akhir pengujian, selalu hasilkan artifak-artifak berikut di folder `hasil-test/`.
+
+> **Konvensi ringkas (direkomendasikan untuk demo):** satu folder per target,
+> `hasil-test-<nama-apk>/`, dengan struktur dangkal — file turunan di root,
+> `bukti/` untuk screenshot/video/UI dump, dan `automation/` untuk spec + CI.
+> Contoh nyata: `hasil-test-DCT-FLM/LAPORAN_RISIKO_DCT-FLM.docx`. Path
+> `hasil-test/...` di bawah adalah bentuk generik; pola ringkas lebih rapi
+> dipresentasikan dan lebih mudah dipindah ke laptop lain.
 
 ### 1. Folder Bukti Screenshot & Rekaman Layar (`hasil-test/screenshots/*.png`, `hasil-test/evidence/android/*.mp4`)
 Kumpulan bukti visual setiap temuan bug, breaking point, form error, baseline UI modul, dan rekaman sesi otomasi MuMu/ADB yang bisa diputar ulang saat demo. Sertakan juga `logcat.txt` untuk Android.
