@@ -172,3 +172,18 @@ test('negative: kredensial salah', async ({ page }) => {
 - [ ] axe = 0 violation + cek keyboard manual.
 - [ ] Snapshot desktop & mobile disetujui.
 - [ ] `storageState.json` dihapus/redacted sebelum laporan.
+
+## 10. Testability Checklist — menuju E2E penuh
+
+E2E penuh = alur bisnis dari masuk sampai hasil akhir terverifikasi di UI **dan** backend, bisa dijalankan ulang. Siapkan test hook berikut:
+
+- [ ] **Auth deterministik**: akun uji + kredensial via env (`QA_USER`/`QA_PASS`); sesi di `auth/storageState.json` (gitignore, hapus setelah sesi).
+- [ ] **Data uji**: seed data yang bisa di-reset tiap run; tidak bergantung pada data produksi.
+- [ ] **OTP/CAPTCHA**: pakai OTP test/mock atau backend UAT yang bisa di-set. Jangan pakai SMS/email nyata.
+- [ ] **Selector stabil**: `data-testid` / `getByRole` / `getByLabel`, bukan XPath posisi atau teks yang mudah berubah.
+- [ ] **Network deterministik**: `page.route()` untuk mock error/lambat; arahkan ke endpoint UAT, bukan produksi.
+- [ ] **State awal bersih**: setup clear storage/cookies, pastikan tidak ada sesi leftover antar run.
+- [ ] **Matrix browser**: Chromium + satu mobile viewport; ulangi setelah perubahan UI.
+- [ ] **Gate hasil**: `PASS` hanya jika asersi UI **dan** data backend lolos; `BLOCKED` kalau OTP/layanan eksternal tidak tersedia.
+
+> Tanpa test hook di atas, yang didapat adalah **E2E luas** dengan bagian bertanda `BLOCKED`, bukan "E2E penuh". Jangan klaim sebaliknya.

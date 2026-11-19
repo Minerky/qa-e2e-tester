@@ -1,6 +1,6 @@
 ---
 name: qa-e2e-tester
-description: Use when performing end-to-end (E2E) QA testing on web, Android, and iOS applications (via Playwright MCP, ADB with MuMu/physical devices, Appium/WebdriverIO/XCTest with bundled runnable templates, with visible/live emulator sessions), testing backend & mobile APIs (REST/JSON/HTTP), pentesting authorized mobile/web/network targets, performing network assessment and performance/stability testing, testing from FSD/PRD/User Guide/Test Scripts, APK/IPA, or pure URL, handling DCT mobile apps with mandatory Test Mode (PIN from env), generating automated test scripts (.spec.ts), and producing ONE consolidated Word (.docx) report with exhaustive validation, CVSS/risk scoring, and embedded screenshots.
+description: Use when performing end-to-end (E2E) QA testing on web, Android, and iOS applications (via Playwright MCP, ADB with MuMu/physical devices, Appium/WebdriverIO/XCTest with bundled runnable templates, with visible/live emulator sessions), including explicit mode commands "e2e web <url>", "e2e mobile <serial|app>", and "e2e all" (also "e2e web"/"e2e mobile"/"jalankan E2E mobile" in Indonesian), testing backend & mobile APIs (REST/JSON/HTTP), pentesting authorized mobile/web/network targets, performing network assessment and performance/stability testing, testing from FSD/PRD/User Guide/Test Scripts, APK/IPA, or pure URL, handling DCT mobile apps with mandatory Test Mode (PIN from env), generating automated test scripts (.spec.ts), and producing ONE consolidated Word (.docx) report with exhaustive validation, CVSS/risk scoring, and embedded screenshots.
 ---
 
 # Universal QA E2E Testing & Reporting Skill (`qa-e2e-tester`)
@@ -27,6 +27,26 @@ Gunakan modul ini sesuai disiplin yang aktif. **Semua disiplin tetap masuk SATU 
 **Keputusan pelaporan:** jangan membuat `laporan-pentest.docx`, `network-assessment.docx`, atau `performance-baseline.xlsx` terpisah. Satu file `Laporan-[TARGET]-v[VER]-[TANGGAL].docx` berisi functional + security + network + performance + risk register. Source of truth temuan: `ai/triage.json`.
 
 Script pembantu: `scripts/qa_ui.py`, `scripts/redact.py`, `scripts/triage_schema.json`. Template: `templates/`.
+
+### 0.2 CARA MEMERINTAHKAN — MODE `e2e`
+
+Satu skill, dua mode E2E yang bisa dipanggil langsung. Keduanya **wajib** masuk satu `ai/triage.json` dan satu DOCX — bukan laporan per mode.
+
+| Perintah | Modul | Eksekusi |
+|---|---|---|
+| `e2e web <url>` | `references/web-e2e.md` | Playwright: auth via env, alur inti, negative/boundary/injection, a11y WCAG 2.2 AA, responsive, console/pageerror = 0. Minta `TARGET_URL` jika belum ada — jangan mengarang URL. |
+| `e2e mobile <serial\|app>` | `references/mobile-e2e.md` + `scripts/qa_ui.py` | ADB MuMu/device fisik: Test Mode via env, dump XML → tap/text, screenshot, activity, logcat. Serial dari `mumu-cli info`, bukan hardcode. |
+| `e2e all` | keduanya | Jalankan web lalu mobile, gabungkan temuan ke satu triage + satu DOCX. |
+
+Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mobile e2e`, `test web <url>`.
+
+**Gate sebelum eksekusi (berlaku untuk dua mode):**
+1. `TARGET_URL` (web) / serial + package (mobile) jelas.
+2. Kredensial, PIN Test Mode, dan OTP test tersedia di env/local file — bukan di chat atau laporan.
+3. Data uji bisa di-reset; ada test backend/akun uji (bukan produksi).
+4. Scope & RoE disetujui — lihat `references/intake-and-roe.md`.
+
+**Pelabelan hasil:** setiap case beri `PASS` / `FAIL` / `BLOCKED`. Kalau ada `BLOCKED`, **jangan** klaim "E2E penuh lolos" — tulis di Bab Batasan. Checklist testability ada di `references/web-e2e.md` §10 dan `references/mobile-e2e.md` §8.
 
 ---
 

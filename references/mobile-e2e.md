@@ -162,3 +162,18 @@ iOS/XCUITest hanya divalidasi di macOS + Xcode. Mesin Windows menyiapkan templat
 - [ ] Screenshot per temuan + video + logcat tersimpan.
 - [ ] Logcat bebas stack trace/secret (`[REDACTED]`).
 - [ ] Temuan masuk satu laporan gabungan.
+
+## 8. Testability Checklist — menuju E2E penuh
+
+E2E penuh mobile = alur bisnis dari launch sampai hasil akhir terverifikasi di UI **dan** backend, bisa diulang di emulator/device. Siapkan test hook berikut:
+
+- [ ] **Test Mode deterministik**: aktifkan lewat env/build flag (`QA_TEST_MODE_PIN`), bukan PIN statis di source. Dingin dan idempoten — jangan klik toggle dua kali.
+- [ ] **Akun uji + OTP test**: kredensial via env/local file; OTP dari backend UAT/mock, bukan SMS nyata.
+- [ ] **Data uji**: seed + reset tiap run; jangan pakai data produksi.
+- [ ] **Selector stabil**: `resource-id` / `content-desc` yang tidak berubah tiap build. Hindari koordinat tetap dan teks yang mudah berganti.
+- [ ] **Network & TLS**: test backend + CA yang bisa dipasang, atau pinning disabled di build uji — kalau tidak, HTTPS tidak bisa diverifikasi.
+- [ ] **Fitur fisik**: kamera, GPS, biometric, push notif, dan app eksternal (mis. Google Maps) punya stub/manual fallback yang terdokumentasi.
+- [ ] **Matrix device**: emulator + minimal 1 device fisik; uji permission dicabut, offline/online, background/foreground.
+- [ ] **Gate hasil**: `PASS` hanya jika UI **dan** data backend sesuai; `BLOCKED` kalau kredensial/OTP/fitur fisik tidak tersedia. Jangan klaim E2E penuh kalau ada `BLOCKED`.
+
+> Fallback ADB offline setelah airplane mode: lihat catatan di §0/§3 dan `references/network-assessment.md` — pakai `mumu-cli sh` untuk rollback sebelum reconnect.

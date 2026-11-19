@@ -2,6 +2,27 @@
 
 Format: `## [YYYY-MM-DD] — Judul`, dengan `Added / Changed / Fixed / Decided / Notes`. Entri terbaru di atas.
 
+## [2026-11-19] — Mode perintah `e2e web` / `e2e mobile` / `e2e all` + testability checklist
+
+### Added
+
+- `SKILL.md` §0.2 **Cara Memerintahkan**: routing eksplisit `e2e web <url>`, `e2e mobile <serial|app>`, `e2e all` plus alias Indonesia/Inggris; gate pra-eksekusi dan pelabelan `PASS`/`FAIL`/`BLOCKED`.
+- Testability checklist E2E penuh di `references/web-e2e.md` §10 dan `references/mobile-e2e.md` §8 (auth deterministik, OTP test, data reset, selector stabil, network/TLS, matrix device, gate hasil).
+- Frontmatter `description` diperluas agar skill aktif saat user memerintahkan "e2e web"/"e2e mobile" secara langsung.
+
+### Changed
+
+- `references/reporting.md`: tegas bahwa hasil kedua mode masuk **satu** `ai/triage.json` → satu DOCX; `BLOCKED` wajib dilaporkan, tidak dihitung `PASS`.
+
+### Decided
+
+- Satu skill menangani dua mode E2E; tidak ada skill/laporan terpisah untuk web dan mobile.
+- "E2E penuh" baru diklaim kalau test hook tersedia; tanpa itu hasilnya **E2E luas** dengan bagian `BLOCKED`.
+
+### Notes
+
+- Web masih menunggu `TARGET_URL` dari user; prosedur dan template sudah siap dipakai.
+
 ## [2026-11-19] — Perluasan menjadi Application Quality, Security, Network & Performance Assessment (mobile + web)
 
 ### Added
