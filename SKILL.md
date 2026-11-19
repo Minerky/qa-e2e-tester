@@ -1,6 +1,6 @@
 ---
 name: qa-e2e-tester
-description: Use when performing end-to-end (E2E) QA testing on web, Android, and iOS applications (via Playwright MCP, ADB, Appium/XCTest), testing backend & mobile APIs (REST/JSON/HTTP), pentesting authorized mobile/web/network targets with AI-assisted triage, testing from FSD/PRD/User Guide/Test Scripts, APK/IPA, or pure URL, handling DCT mobile apps with mandatory Test Mode (PIN 789123), generating automated test scripts (.spec.ts), and producing structured Word (.docx)/Markdown reports with exhaustive validation, risk scoring, and embedded screenshots.
+description: Use when performing end-to-end (E2E) QA testing on web, Android, and iOS applications (via Playwright MCP, ADB with MuMu/physical devices, Appium/XCTest, with visible/live emulator sessions), testing backend & mobile APIs (REST/JSON/HTTP), pentesting authorized mobile/web/network targets with AI-assisted triage, testing from FSD/PRD/User Guide/Test Scripts, APK/IPA, or pure URL, handling DCT mobile apps with mandatory Test Mode (PIN 789123), generating automated test scripts (.spec.ts), and producing structured Word (.docx)/Markdown reports with exhaustive validation, risk scoring, and embedded screenshots.
 ---
 
 # Universal QA E2E Testing & Reporting Skill (`qa-e2e-tester`)
@@ -66,6 +66,37 @@ Untuk Mode 5 dan Mode 6, **guardrail bagian 0 wajib dipenuhi sebelum eksekusi**.
 ---
 
 ## 3. PROTOKOL EKSEKUSI MENYELURUH (WEB, ANDROID, iOS, API, & PENTEST)
+
+### A0. Protokol Android via ADB & MuMu Emulator (Mode Terlihat / Live)
+1. **Jalankan MuMu dalam mode terlihat**: buka jendela GUI MuMu Player, jangan di-minimize/headless/background saat demo. Set resolusi minimal `1080x1920`, DPI `320`, dan matikan mode silent agar setiap tap/swipe kelihatan.
+2. **Aktifkan ADB**: di MuMu buka *Settings → ADB* (atau `设置 → ADB`) dan pastikan ADB debugging aktif. Port bawaan yang umum: instance pertama `127.0.0.1:7555`, kedua `7557`, ketiga `7559` (inkremen +2). Jika berbeda, cek menu ADB emulator atau `netstat -ano | findstr LISTENING`.
+3. **Hubungkan**:
+   ```powershell
+   adb kill-server
+   adb start-server
+   adb connect 127.0.0.1:7555
+   adb devices
+   ```
+   Status harus `device`. Jika `unauthorized`, klik **Allow** di jendela MuMu. Jika `offline`, ulangi `adb disconnect 127.0.0.1:7555` lalu connect lagi.
+4. **Pasang/verifikasi app**:
+   ```powershell
+   adb install -r app.apk
+   adb shell pm list packages | findstr <nama-package>
+   ```
+5. **Eksekusi otomatis yang kelihatan**:
+   - Pakai Appium `UiAutomator2` dengan `appPackage`/`appActivity` atau path `app`, `noReset: false`, `newCommandTimeout: 120`. Biarkan `appium` dan jendela MuMu tetap foreground saat demo.
+   - Alternatif smoke test cepat: `adb shell input tap <x> <y>`, `adb shell input swipe ...`, `adb shell input text ...` — semua aksi langsung terlihat di layar MuMu.
+   - Catatan: MuMu adalah emulator Android; skenario iOS tetap memakai simulator Xcode/device asli (bagian 3D).
+6. **Rekam bukti**:
+   ```powershell
+   adb shell screenrecord /sdcard/test.mp4
+   adb pull /sdcard/test.mp4 hasil-test/evidence/android/<skenario>.mp4
+   adb exec-out screencap -p > hasil-test/evidence/android/<id>.png
+   adb logcat -v time > hasil-test/evidence/android/logcat.txt
+   ```
+   Boleh juga pakai fitur screen recorder bawaan MuMu.
+7. **Multi-instance**: ulangi `adb connect 127.0.0.1:<port>` untuk tiap instance, lalu bedakan `udid` dan `systemPort` di capabilities Appium.
+8. **Caveat**: jika aplikasi butuh Google Mobile Services/ARM khusus, pastikan versi MuMu yang dipakai mendukungnya; kalau tidak, gunakan perangkat fisik atau emulator lain.
 
 ### A. Protokol Khusus Aplikasi Mobile DCT (Asset, Cargo, CDC, FLM, dll):
 - **Wajib Masuk ke Test Mode Terlebih Dahulu Sebelum Melakukan Login/Testing**:
@@ -207,8 +238,8 @@ Format detail bug wajib mencantumkan screenshot visual:
 
 Di akhir pengujian, selalu hasilkan artifak-artifak berikut di folder `hasil-test/`:
 
-### 1. Folder Bukti Screenshot Lengkap (`hasil-test/screenshots/*.png`)
-Kumpulan bukti visual setiap temuan bug, breaking point, form error, dan baseline UI modul.
+### 1. Folder Bukti Screenshot & Rekaman Layar (`hasil-test/screenshots/*.png`, `hasil-test/evidence/android/*.mp4`)
+Kumpulan bukti visual setiap temuan bug, breaking point, form error, baseline UI modul, dan rekaman sesi otomasi MuMu/ADB yang bisa diputar ulang saat demo. Sertakan juga `logcat.txt` untuk Android.
 
 ### 2. Script Otomasi Playwright Mandiri (`hasil-test/tests/<project-name>.spec.ts`)
 Berisi test suite Playwright yang mencakup pengujian fungsional dan monkey stress suite.
