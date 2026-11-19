@@ -1,11 +1,13 @@
 ---
 name: qa-e2e-tester
-description: Use when performing end-to-end (E2E) QA testing on web, Android, and iOS applications (via Playwright MCP, ADB with MuMu/physical devices, Appium/WebdriverIO/XCTest with bundled runnable templates, with visible/live emulator sessions), including explicit mode commands "e2e web <url>", "e2e mobile <serial|app>", and "e2e all" (also "e2e web"/"e2e mobile"/"jalankan E2E mobile" in Indonesian), testing backend & mobile APIs (REST/JSON/HTTP), pentesting authorized mobile/web/network targets, performing network assessment and performance/stability testing, testing from FSD/PRD/User Guide/Test Scripts, APK/IPA, or pure URL, handling DCT mobile apps with mandatory Test Mode (PIN from env), generating automated test scripts (.spec.ts), and producing ONE consolidated Word (.docx) report with exhaustive validation, CVSS/risk scoring, and embedded screenshots.
+description: Vibe QA tester — user gives only a command and supporting docs; agent self-resolves inputs, self-recovers from tool failures, and produces ONE consolidated Word (.docx) report. Covers end-to-end (E2E) testing of web, Android and iOS apps (Playwright browser tools, ADB with MuMu/physical devices, Appium/WebdriverIO/XCTest), backend/mobile APIs (REST/JSON/HTTP), authorized pentesting and network assessment, and performance/stability testing. Trigger perintah "e2e web [url]", "e2e mobile [serial|app]", "e2e all", juga "e2e web", "e2e mobile", "jalankan E2E web/mobile", "test web <url>". Input FSD/PRD/User Guide/Test Scripts, APK/IPA, config, atau URL saja. Kredensial di-resolve otomatis dari .env.qa / qa-credentials.local.json. Test Mode DCT otomatis. Hasil satu ai/triage.json lalu satu DOCX berisi risk register, daftar test case, CVSS, dan screenshot.
 ---
 
-# Universal QA E2E Testing & Reporting Skill (`qa-e2e-tester`)
+# VIBE QA TESTER (`qa-e2e-tester`)
 
-Skill ini adalah standar operasional pengujian kualitas perangkat lunak (Software Quality Assurance) tingkat lanjut untuk **Web, Mobile Android & iOS (APK/IPA, ADB, Appium/XCTest), Backend API, dan Pentest Mobile/Web/Jaringan berbasis AI** yang **WAJIB MENGEKSEKUSI PENGUJIAN SECARA TOTALITAS & EXHAUSTIVE (ZERO MISSED DEFECTS)**. Tidak boleh ada hal kecil, tombol, interaksi, validasi, endpoint, port, atau konfigurasi yang dilewatkan. Setiap komponen UI, modal, tab, filter, error dialog, input form, format data, boundary, permission, request/response API, artifact mobile, dan permukaan jaringan harus diuji secara menyeluruh dengan **Playwright MCP / Android ADB / Appium / HTTP API Client / tool pentest yang diizinkan** dan dilaporkan lengkap beserta bukti screenshot/log. Temuan keamanan wajib diberi **lokasi eksplisit, risk score, dampak bisnis, dan rekomendasi**, bukan sekadar status V/X.
+Skill ini mengubah satu perintah menjadi pengujian yang berjalan sendiri. User cukup memerintah (`e2e web`, `e2e mobile`, `e2e all`) dan menyediakan dokumen/APK; agent yang me-resolve target, akun, PIN/OTP, serial, package, dan test case — lalu mengeksekusi, memulihkan diri saat tool gagal, dan menghasilkan **satu** DOCX. Cakupannya **Web, Android/iOS (APK/IPA, ADB, Appium/XCTest), API, pentest mobile/web/jaringan, dan performa/stabilitas** lewat tool browser Playwright, ADB MuMu/device fisik, Appium, HTTP client, dan tool pentest yang diizinkan.
+
+**Prinsip coverage:** uji seluas mungkin dan dokumentasikan. Setiap tombol, input, tab, validasi, endpoint, port, permission, request/response, dan permukaan jaringan yang bisa diuji harus diuji. Yang tidak bisa diuji **jangan diklaim lolos** — tandai `BLOCKED` di `ai/triage.json` dan Bab Batasan. Temuan keamanan wajib memuat lokasi eksplisit, risk score, dampak bisnis, dan rekomendasi, bukan sekadar V/X.
 
 ---
 
@@ -19,13 +21,13 @@ Skill ini **satu file**. Semua disiplin — Intake/RoE, Mobile E2E, Web E2E, API
 
 ### 0.2 CARA MEMERINTAHKAN — MODE `e2e`
 
-Satu skill, dua mode E2E yang bisa dipanggil langsung. Keduanya **wajib** masuk satu `ai/triage.json` dan satu DOCX — bukan laporan per mode.
+Satu skill, tiga perintah E2E. Ketiganya **wajib** masuk satu `ai/triage.json` dan satu DOCX — bukan laporan per mode.
 
-| Perintah | Modul | Eksekusi |
-|---|---|---|
-| `e2e web [url]` | Playwright (tool browser langsung): auth, alur inti, negative/boundary/injection, a11y WCAG 2.2 AA, responsive, console/pageerror = 0. URL diambil dari perintah **atau** dokumen pendukung — jangan mengarang. |
+| Perintah | Eksekusi |
+|---|---|
+| `e2e web [url]` | Tool browser Playwright langsung (tanpa `npm install` dulu): auth, alur inti, negative/boundary/injection, a11y WCAG 2.2 AA, responsive, console/pageerror = 0. URL dari perintah atau dokumen — jangan mengarang. |
 | `e2e mobile [serial\|app]` | ADB MuMu/device fisik: Test Mode, dump XML → tap/text, screenshot, activity, logcat. Serial/package di-auto-resolve dari `mumu-cli info` dan APK. |
-| `e2e all` | keduanya | Jalankan web lalu mobile, gabungkan temuan ke satu triage + satu DOCX. |
+| `e2e all` | Jalankan web lalu mobile, gabungkan temuan ke satu triage + satu DOCX. |
 
 Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mobile e2e`, `test web <url>`.
 
@@ -39,11 +41,24 @@ Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mo
 | package / APK | argumen → APK di workspace → `pm list packages` / `dumpsys` |
 | test case & ekspektasi | dokumen pendukung → generate case otomatis |
 
-**Gate sebelum eksekusi:** target & akun uji berhasil di-resolve; environment UAT/staging (atau ada approval tertulis); data uji bisa di-reset; kredensial tidak pernah muncul di chat/log/DOCX. RoE dicatat dari dokumen; kalau approval tidak ada, **tanya sekali** sebelum aksi yang mengubah state — jangan mengarang dan jangan berhenti dengan formulir panjang.
+**Gate sebelum eksekusi:** target & akun uji berhasil di-resolve; environment UAT/staging (atau ada approval tertulis); data uji bisa di-reset. Kredensial tidak diminta di chat dan tidak ditulis ke log runtime; di laporan internal ditampilkan sesuai aturan tunggal di bawah. RoE dicatat dari dokumen; kalau approval tidak ada, **tanya sekali** sebelum aksi yang mengubah state — jangan mengarang dan jangan berhenti dengan formulir panjang.
 
 **Pelabelan hasil:** setiap case beri `PASS` / `FAIL` / `BLOCKED`. Kalau ada `BLOCKED`, **jangan** klaim "E2E penuh lolos" — tulis di Bab Batasan. Checklist testability: auth deterministik, akun uji + OTP test, data bisa di-reset, selector stabil (`resource-id`/`content-desc`/`data-testid`), network/TLS terkendali, matrix device, dan asersi UI + backend.
 
-**Akun uji di laporan:** cantumkan secara eksplisit identitas/role akun, sumbernya (dokumen atau `.env.qa`), metode login (login interaktif / sesi aktif), **password, PIN Test Mode, dan OTP yang dipakai**. Karena lambannya satu tim/perusahaan, kredensial uji ini tidak disensor di laporan internal. Tetap sensor NIK, nomor HP, token pihak ketiga (bot/API), dan chat ID. Kalau kredensial memang tidak tersedia atau tidak dipakai, tulis terus terang "tidak disediakan / tidak dieksekusi" — jangan mengarang nilai.
+### Aturan kredensial — SATU versi (berlaku di seluruh skill)
+
+Identitas, role, sumber akun, metode login, **password, PIN Test Mode, dan OTP akun uji ditampilkan** di laporan internal (satu tim/perusahaan). Yang tetap `[REDACTED]`: **NIK, nomor HP, token pihak ketiga (bot/API), chat ID, Android ID, dan data pribadi di luar akun uji**. Kredensial tidak diminta di chat dan tidak ditulis ke log runtime. Kalau tidak tersedia atau tidak dipakai, tulis terus terang "tidak disediakan / tidak dieksekusi" — jangan mengarang nilai. Tidak ada aturan lain yang boleh mengubah ini.
+
+### Loop otonom vibe tester
+
+Jalankan tanpa menunggu instruksi per langkah:
+
+1. **Resolve** — baca perintah + dokumen + `.env.qa`; tentukan target, akun, serial, package, test case. Kalau ada yang benar-benar tidak ada, tanya **sekali**.
+2. **Execute** — jalankan mode yang diminta; tiap case diberi `PASS` / `FAIL` / `BLOCKED` dengan bukti nyata.
+3. **Recover** — kalau tool/ADB/browser gagal, pakai fallback yang tercantum di skill (mis. A0 langkah 3b). Jangan berhenti hanya karena koneksi putus; coba pulihkan dulu.
+4. **Triage** — tulis semua temuan ke `ai/triage.json` (satu source of truth), termasuk `BLOCKED`.
+5. **Report** — hasilkan satu DOCX: ringkasan, temuan, risk register, daftar test case, batasan, bukti.
+6. **Stop** — hanya saat scope selesai, approval ditolak, atau target produksi berisiko. Laporkan state terakhir tanpa klaim berlebihan.
 
 ---
 
@@ -51,7 +66,7 @@ Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mo
 - **Izin tertulis**: Jalankan pentest/scan HANYA pada target milik sendiri atau yang memiliki authorization/scope tertulis (URL, IP, hostname, APK/IPA, akun uji). Jika tidak ada izin, berhenti dan minta konfirmasi.
 - **Batasi scope**: Tidak boleh memindai host di luar daftar yang disetujui. Tidak boleh melakukan eksploitasi destruktif, DDoS, ransomware, defacement, atau penghapusan data produksi.
 - **Mode aman default**: Gunakan probe deteksi (payload non-destruktif, scan pasif/ringan, validasi header/konfigurasi). Eksploitasi aktif hanya boleh setelah user menyetujui langkah dan tersedia backup/rollback.
-- **Data sensitif**: Password, PIN Test Mode, dan OTP akun uji **boleh dicantumkan di laporan internal tim**. Yang tetap wajib disensor: NIK, nomor HP, token pihak ketiga (bot/API), chat ID, dan data pribadi lain di luar akun uji.
+- **Data sensitif**: ikuti **Aturan kredensial — SATU versi** di §0.2. Redaction wajib diterapkan ke DOCX, log, dan artifact.
 - **Production gate**: Jika target adalah produksi dan ada risiko outage/perubahan data, minta approval eksplisit sebelum aksi yang mengubah state.
 - **Audit trail**: Setiap aksi tercatat di `hasil-test/ai/audit-log.jsonl` (waktu, target, tool, hasil, keputusan).
 
@@ -59,7 +74,7 @@ Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mo
 
 ## 1. PRINSIP UTAMA: EXHAUSTIVE & GRANULAR TESTING (PENGUJIAN TANPA CELAH)
 
-1. **100% Interactivity Coverage**:
+1. **Target Interactivity Coverage** (yang tidak bisa diuji → `BLOCKED`, bukan dilewati):
    - **Semua Tombol Wajib Diklik**: Tombol primer, sekunder, tombol ikon kecil (+, -, edit, delete, view, download, export, import, print, close, cancel, refresh, collapse, expand).
    - **Semua Input Wajib Diuji**: Textbox, password, number, date picker, range month, dropdown single/multi select, radio button, checkbox, textarea, file upload.
    - **Semua Tab & Accordion Wajib Dibuka**: Setiap sub-tab dan hidden panel wajib dicek konten dan fungsinya.
@@ -121,6 +136,18 @@ Untuk Mode 5 dan Mode 6, **guardrail bagian 0 wajib dipenuhi sebelum eksekusi**.
    & $adb devices
    ```
    Status harus `device`. Jika `unauthorized`, klik **Allow** di jendela MuMu. Jika `offline`, ulangi `& $adb disconnect 127.0.0.1:16384` lalu connect lagi. Ganti `16384` dengan `adb_port` dari langkah 2.
+
+   3b. **Fallback saat ADB offline setelah airplane mode / proxy mati.** Jangan langsung menyerah dan jangan klaim skenario offline lolos. Matikan airplane mode lewat MuMu CLI, reset proxy, lalu reconnect:
+    ```powershell
+    $mumu = "C:\Program Files\Netease\MuMuPlayer\nx_main\mumu-cli.exe"
+    & $mumu sh --vmindex 0 --cmd "settings put global airplane_mode_on 0"
+    & $mumu sh --vmindex 0 --cmd "am broadcast -a android.intent.action.AIRPLANE_MODE --ez state false"
+    & $mumu sh --vmindex 0 --cmd "settings put global http_proxy :0"
+    & $adb disconnect 127.0.0.1:16384
+    & $adb connect 127.0.0.1:16384
+    & $adb devices
+    ```
+    Setelah pulih, lanjut dump/screenshot. Kalau state tidak bisa dikembalikan, tandai `BLOCKED` dan catat di Bab Batasan.
 4. **Pasang/verifikasi app**:
    ```powershell
    adb install -r app.apk
@@ -162,7 +189,7 @@ Hasil nyata: `1 passing` — Test Mode → login dari env → Home 4 tab.
    SDK minimal cukup berisi `platform-tools\adb.exe` + `AdbWinApi.dll` + `AdbWinUsbApi.dll`
    (salinkan ketiganya dari folder `nx_main` MuMu; tanpa DLL itu Appium tidak melihat device).
 2. **Buat spec WDIO** di folder output (`automation/wdio.conf.ts`, `android.spec.ts`, `package.json`), lalu `npm install`.
-3. **Jalankan** (kredensial HANYA lewat env, jangan pernah ditulis ke file/laporan):
+3. **Jalankan** (baca kredensial dari `.env.qa` / `qa-credentials.local.json`, jangan minta di chat; tampilkan di DOCX sesuai aturan §0.2):
    ```powershell
    $env:QA_NIK='NIK_UJI'
    $env:QA_PASS='password_uji'
@@ -196,23 +223,15 @@ Hasil nyata: `1 passing` — Test Mode → login dari env → Home 4 tab.
    - Pantau response time API (flag jika latency > 2.000 ms).
    - Validasi error handling saat timeout / backend offline (tidak boleh return raw 500 stack trace ke client).
 
-### C. Protokol Web & Playwright MCP:
-Saat melakukan pengujian web, ikuti urutan perintah Playwright MCP berikut:
+### C. Protokol Web & Tool Browser Playwright:
+Saat menguji web, pakai tool browser yang tersedia di sesi (lewat Code Mode `tools.playwright.*`, mis. `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_evaluate`, `browser_take_screenshot`, `browser_console_messages`). **Cek katalog tool di sesi** dan gunakan nama yang benar-benar ada — jangan mengarang signature. Tidak perlu `npm install` untuk eksekusi ad-hoc; CLI tetap dipakai kalau user minta suite reproducible.
 
-1. **Inisialisasi & Reset State**:
-   ```javascript
-   await page.goto(TARGET_URL);
-   await page.evaluate(() => localStorage.clear());
-   await page.reload();
-   ```
-2. **Snapshot & Element Discovery**:
-   - Pindai seluruh tombol (`button, a, input[type="button"], input[type="submit"]`) dan input form pada halaman menggunakan `playwright_browser_evaluate` atau snapshot.
-3. **Eksekusi Bertahap (Happy Path $\rightarrow$ Negative $\rightarrow$ Chaos / Edge Case)**:
-   - Lakukan pengetesan satu per satu pada setiap elemen tanpa melewatkan tombol apa pun.
-4. **Mandatori Screenshot pada Setiap Temuan Bug / Warning**:
-   - Panggil `playwright_browser_take_screenshot(filename: "hasil-test/screenshots/<bug-id>.png")` segera saat error/anomali/state ditemukan.
-5. **Cek Log Console & Network API**:
-   - Panggil `playwright_browser_console_messages(level: "info")` untuk mencatat error HTTP 404, 500, atau JS exception.
+1. **Inisialisasi & Reset State**: buka `TARGET_URL`, lalu `localStorage.clear()` lewat `browser_evaluate` dan reload.
+2. **Snapshot & Element Discovery**: `browser_snapshot` / `browser_evaluate` untuk memindai tombol (`button`, `a`, `input[type=button|submit]`) dan semua input form.
+3. **Eksekusi bertahap** — Happy Path → Negative → Chaos/Edge Case, satu per satu tanpa melewatkan elemen.
+4. **Screenshot wajib** pada tiap temuan: `browser_take_screenshot` segera saat error/anomali/state ditemukan, simpan ke `pendukung/bukti/<bug-id>.png`.
+5. **Console & network**: `browser_console_messages` untuk 404/500/JS exception; catat request/response API yang relevan.
+6. **Bukti keputusan**: jangan klaim "membaca screenshot". Dasarkan asersi pada snapshot aksesibilitas, teks DOM, console, dan response JSON.
 
 ### D. Protokol Otomasi iOS (Appium / XCUITest)
 1. **Prasyarat**: macOS + Xcode (untuk simulator) atau real device dengan provisioning; Appium 4.x dengan driver `XCUITest`, atau XCTest/XCUITest native.
@@ -255,7 +274,7 @@ Saat melakukan pengujian web, ikuti urutan perintah Playwright MCP berikut:
    - Injection probe: XSS/SQLi/path traversal/command-like payload non-destruktif pada semua input (lihat bagian 1.2).
    - CSRF token, CORS misconfiguration, security header (CSP, HSTS, X-Frame-Options, X-Content-Type-Options), cookie flag (`HttpOnly`, `Secure`, `SameSite`).
    - File upload (type/size/execution), directory listing, verbose error/stack trace, open redirect.
-3. **Tooling**: Playwright MCP untuk probe UI, `curl`/HTTP client untuk header, OWASP ZAP baseline/active scan **hanya pada scope yang disetujui**.
+3. **Tooling**: tool browser Playwright untuk probe UI, `curl`/HTTP client untuk header, OWASP ZAP baseline/active scan **hanya pada scope yang disetujui**.
 4. **AI triage**: agent mengelompokkan duplikat, membuang false positive, memberi confidence level, dan menyusun remedasi. Temuan HIGH/CRITICAL wajib divalidasi manual.
 
 ### G. Protokol Pentest Jaringan (Authorized Only)
@@ -312,62 +331,38 @@ Format detail bug wajib mencantumkan screenshot visual:
 - **AI Confidence:** [high / medium / low]
 ```
 
+### 4.1 Redaction & skema `triage.json` (inline — tidak bergantung file helper)
+
+Terapkan redaction ke semua artifact sebelum disimpan:
+- NIK / nomor induk 16 digit → `[REDACTED]`
+- nomor HP `08…` / `62…` → `[REDACTED]`
+- token bot `Angka:Token` dan chat ID numerik panjang → `[REDACTED]`
+- Android ID / `android_id` 16 hex → `[REDACTED]`
+- password/PIN/OTP akun uji → **tidak disensor** (aturan §0.2)
+
+Field minimal tiap entri `ai/triage.json`: `id`, `title`, `category` (`Functional Bug` / `Security Risk` / `Network Risk`), `severity`, `location`, `likelihood`, `impact`, `risk_score`, `cvss` (opsional), `actual`, `expected`, `business_impact`, `recommendation`, `evidence[]` (path nyata), `confidence`, `chain`, `status` (`PASS` / `FAIL` / `BLOCKED`).
+
 ---
 
 ## 5. GENERASI ARTIFAK OUTPUT PENGUJIAN
 
-Di akhir pengujian, selalu hasilkan artifak-artifak berikut di folder `hasil-test/`.
+Di akhir pengujian hasilkan **satu folder target** berisi **tepat satu `.docx`** di root dan satu folder `pendukung/`. Jangan membuat laporan per disiplin, `risk-register.xlsx`, atau `<NAMA>_RISK_REPORT.docx` terpisah — semuanya disisipkan ke DOCX.
 
-> **Konvensi ringkas (direkomendasikan untuk demo):** satu folder per target,
-> `hasil-test-<nama-apk>/`, dengan struktur dangkal — file turunan di root,
-> `bukti/` untuk screenshot/video/UI dump, dan `automation/` untuk spec + CI.
-> Contoh nyata: `hasil-test-DCT-FLM/LAPORAN_RISIKO_DCT-FLM.docx`. Path
-> `hasil-test/...` di bawah adalah bentuk generik; pola ringkas lebih rapi
-> dipresentasikan dan lebih mudah dipindah ke laptop lain.
+```
+hasil-test-<target>/
+  Laporan-<TARGET>-v<VER>-<TANGGAL>.docx   ← satu-satunya file di root
+  pendukung/
+    ai/triage.json          ← source of truth temuan
+    ai/audit-log.jsonl      ← jejak eksekusi
+    ai/generated-cases.md   ← daftar test case (juga disisipkan di DOCX)
+    bukti/                  ← screenshot, video, dump XML, logcat, request/response
+    automation/             ← spec Playwright/WDIO (opsional)
+    build_final_report.py / verify_final.py  ← generator + verifier (opsional)
+```
 
-### 1. Folder Bukti Screenshot & Rekaman Layar (`hasil-test/screenshots/*.png`, `hasil-test/evidence/android/*.mp4`)
-Kumpulan bukti visual setiap temuan bug, breaking point, form error, baseline UI modul, dan rekaman sesi otomasi MuMu/ADB yang bisa diputar ulang saat demo. Sertakan juga `logcat.txt` untuk Android.
+Isi wajib DOCX: halaman judul & meta (target, tanggal, scope, status QA), ringkasan eksekutif + metrik, metodologi, lingkungan pengujian (**termasuk akun uji sesuai aturan §0.2**), temuan gabungan (lokasi, `L × I`, CVSS, dampak bisnis, rekomendasi, bukti), hasil functional/web/mobile/API/security/network/performance, **risk register sebagai tabel**, **daftar test case sebagai lampiran**, rekomendasi prioritas, batasan & status `BLOCKED`, lampiran bukti.
 
-### 2. Script Otomasi Playwright Mandiri (`hasil-test/tests/<project-name>.spec.ts`)
-Berisi test suite Playwright yang mencakup pengujian fungsional dan monkey stress suite.
-
-### 3. CI/CD Pipeline Automation Template (`hasil-test/ci-cd/`)
-Menghasilkan template pipeline workflow siap pakai:
-- **GitHub Actions**: `hasil-test/ci-cd/playwright-e2e.yml`
-- **GitLab CI**: `hasil-test/ci-cd/.gitlab-ci.yml`
-- Mendukung eksekusi otomatis headless di cloud, artifact archiving untuk report html/docx, dan notification hook.
-
-### 4. Integrasi Langsung ke Spreadsheet / Excel (.xlsx)
-Jika pengguna meminta hasil pengujian diisi langsung ke file Excel/Spreadsheet (seperti `Enhancement Payroll WSS.xlsx`), lakukan langkah berikut:
-1. **Analisis Struktur Kolom**: Identifikasi letak kolom `Result` (Status V/X), `Keterangan Tester`, `Keterangan PIC`, dan `Screenshot` (biasanya Kolom `Screenshot` / `I` / `H`).
-2. **Populasi Nilai Uji Tanpa Mengubah Format**: Isi nilai `V` (Pass) atau `X` (Fail) dan update keterangan temuan pada baris skenario yang bersangkutan.
-3. **Penyisipan Gambar Screenshot Otomatis pada Baris Defect/Temuan**:
-   - Jika terdapat temuan ketidaksesuaian / defect (status `X`), tangkap screenshot bukti melalui Playwright.
-   - Sisipkan file gambar langsung ke sel Excel pada kolom `Screenshot` menggunakan `openpyxl.drawing.image.Image` dengan penyesuaian dimensi gambar (lebar/tinggi sel).
-   - Simpan workbook secara aman (tangani locked process/merged cells).
-
-### 5. Dokumen Laporan Word Resmi Berisi Gambar Screenshot (`hasil-test/<NAMA_APLIKASI_ATAU_MODUL>_REPORT.docx`)
-Dokumen Word disusun otomatis menggunakan library `python-docx` / `docx` dengan struktur penamaan file format: `hasil-test/<NAMA_APLIKASI/MODUL/WEB_YG_DITEST>_REPORT.docx` (contoh: `hasil-test/DCT_ANDROID_REPORT.docx`, `hasil-test/PAYROLL_WSS_REPORT.docx`):
-1. **Halaman Judul & Meta Informasi** (Target URL, Tanggal, Scope, Status QA).
-2. **Ringkasan Eksekutif & Metrik Kualitas** (Tabel Passed/Failed Rate, Breakdown Severity).
-3. **Matriks Hasil Pengujian Detail** (Tabel komprehensif per elemen & skenario).
-4. **Daftar Temuan Bug Terstruktur DILENGKAPI GAMBAR SCREENSHOT EMBEDDED**.
-5. **Tangkapan Layar Baseline UI & Desain Modul**.
-6. **Action Plan, Rekomendasi Arsitektur & Security Hardening**.
-7. **Kesimpulan Kesiapan Rilis (Production Readiness)**.
-
-### 6. Bukti Pentest & AI Triage (`hasil-test/security/` dan `hasil-test/ai/`)
-- `security/mobile/`, `security/web/`, `security/network/`: log scan, request/response, screenshot, output ZAP/nmap, dan hasil static analysis.
-- `ai/generated-cases.md`: test matrix otomatis dari FSD/PRD + negative/chaos cases.
-- `ai/triage.json`: daftar temuan terstruktur berisi severity, risk score, lokasi, confidence, dan status validasi.
-- `ai/audit-log.jsonl`: jejak eksekusi sesuai guardrail bagian 0.
-
-### 7. Risk Register (`hasil-test/risk-register.xlsx`)
-Kolom minimal: `ID`, `Kategori`, `Lokasi`, `Deskripsi`, `Likelihood`, `Impact`, `Risk Score`, `Severity`, `CVSS`, `Owner`, `Status`, `Due Date`, `Bukti`, `Catatan AI`.
-Gunakan `openpyxl`, beri auto-filter dan conditional formatting/heatmap (hijau → kuning → merah).
-
-### 8. Laporan Risiko Eksekutif (`hasil-test/<NAMA_TARGET>_RISK_REPORT.docx` atau `.md`)
-Berisi: scope & izin, metode, metrik temuan per severity, **heatmap risiko**, top 5 risk beserta lokasi dan dampak bisnis, peta target (host/endpoint/modul), rekomendasi prioritas (short/medium/long term), dan kesimpulan **production readiness**. Setiap risk wajib menautkan bukti di `security/` dan entri di `ai/triage.json`.
+Generator: `python-docx` untuk teks/tabel/gambar. `openpyxl` **hanya dipakai kalau user eksplisit meminta pengisian Excel terpisah** (default tidak). Verifikasi akhir: struktur bab lengkap, satu `.docx`, redaction sesuai aturan §0.2, dan tidak ada kredensial yang terlewat dari pemeriksaan.
 
 ---
 
@@ -400,37 +395,25 @@ for bug in bugs:
         r_cap.font.size = Pt(8.5)
         r_cap.font.italic = True
 
-doc.save("hasil-test/<NAMA_APLIKASI/MODUL/WEB_YG_DITEST>_REPORT.docx")
+doc.save(f"hasil-test-<target>/Laporan-<TARGET>-v<VER>-<TANGGAL>.docx")
 ```
 
-Contoh ringkas menulis risk register dengan heatmap:
+Contoh ringkas menyisipkan risk register ke DOCX yang sama (bukan file terpisah):
 
 ```python
-from openpyxl import Workbook
-from openpyxl.styles import PatternFill
-from openpyxl.formatting.rule import CellIsRule
+from docx.shared import RGBColor
 
-wb = Workbook()
-ws = wb.active
-ws.title = "Risk Register"
-ws.append(["ID", "Lokasi", "Likelihood", "Impact", "Risk Score", "Severity", "Bukti"])
-
+t = doc.add_table(rows=1, cols=5)
+for i, h in enumerate(['ID', 'Lokasi', 'Risk Score', 'Severity', 'Bukti']):
+    t.rows[0].cells[i].text = h
 for risk in triage:
-    score = risk["likelihood"] * risk["impact"]
-    ws.append([
-        risk["id"], risk["location"], risk["likelihood"], risk["impact"],
-        score, risk["severity"], risk["evidence"],
-    ])
-
-ws.conditional_formatting.add(
-    f"E2:E{ws.max_row}",
-    CellIsRule(
-        operator="greaterThanOrEqual",
-        formula=["12"],
-        fill=PatternFill("solid", fgColor="FFC7CE"),
-    ),
-)
-wb.save("hasil-test/risk-register.xlsx")
+    row = t.add_row().cells
+    score = risk['likelihood'] * risk['impact']
+    for i, v in enumerate([risk['id'], risk['location'], score,
+                           risk['severity'], risk['evidence']]):
+        row[i].text = str(v)
+    if score >= 12:
+        row[2].paragraphs[0].runs[0].font.color.rgb = RGBColor(0xB0, 0, 0)
 ```
 
 ---
@@ -439,6 +422,12 @@ wb.save("hasil-test/risk-register.xlsx")
 
 Riwayat lengkap ada di `git log` repository. Ringkasan terbaru:
 
+- **Menjadi vibe tester**: loop otonom `resolve → execute → recover → triage → report → stop`.
+- Fallback ADB offline (airplane mode) tertanam langsung di A0 langkah 3b.
+- Aturan kredensial disatukan jadi satu versi; kontradiksi dihapus.
+- Output dipaksa satu DOCX; risk register & daftar test case disisipkan, bukan file terpisah.
+- Nama tool browser Playwright disesuaikan dengan tool Code Mode.
+- Redaction + skema `triage.json` tersedia inline (tidak bergantung helper yang dihapus).
 - Dua file saja: `SKILL.md` (instruksi agent) + `CARA_INSTALL.md` (panduan manusia).
 - Auto-resolve input dari perintah + dokumen pendukung; user tidak perlu set env.
 - Routing perintah `e2e web` / `e2e mobile` / `e2e all`.
