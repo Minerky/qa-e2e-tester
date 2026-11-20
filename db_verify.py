@@ -27,8 +27,11 @@ File checks berisi daftar asersi SELECT. Contoh:
      "expect": {"column": "n", "min": 1}}
   ]
 
-Expect yang didukung: `value`, `min`, `max`, `contains`,
+Expect yang didukung: `value`, `min`, `max`, `contains`, `contains_all`,
 `row_count`, `row_count_min`, `row_count_max`, `exists`.
+
+`contains_all` berguna untuk SP: mengecek beberapa kondisi sekaligus di teks
+definisi, misalnya `["IF @status", "RAISERROR", "RETURN"]`.
 
 Stored procedure (SQL Server) — MEMBACA DEFINISI, bukan mengeksekusi:
 
@@ -209,6 +212,11 @@ def _evaluate(check, columns, rows):
             ok = val is not None and float(val) <= float(exp['max'])
         elif 'contains' in exp:
             ok = str(exp['contains']) in str(val)
+        elif 'contains_all' in exp:
+            missing = [s for s in exp['contains_all'] if str(s) not in str(val)]
+            return (STATUS_PASS if not missing else STATUS_FAIL), (
+                f'{col}: semua kondisi ditemukan' if not missing
+                else f'{col}: kondisi tidak ditemukan {missing}')
         else:
             return STATUS_PASS, f'{col}={val}'
         return (STATUS_PASS if ok else STATUS_FAIL), f'{col}={val} (expected {exp})'

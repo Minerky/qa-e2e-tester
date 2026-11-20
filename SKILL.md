@@ -377,11 +377,12 @@ Gunakan bila temuan atau alur uji punya **state di database**. Ini melengkapi `U
 6. **Gunakan akun read-only dan staging/UAT dulu.** Data pelanggan yang tampil di hasil query tunduk
    pada aturan pelaporan di bawah — jangan disertakan mentah di laporan yang dibagikan.
 7. **Stored procedure — baca definisi, jangan eksekusi.** Untuk SQL Server pakai kunci `sp` di check:
-   `{"id":"SP-01","sp":"dbo.NamaProsedur","expect":{"column":"definisi","contains":"SELECT"}}`
-   atau `{"id":"SP-02","sp":"*"}` untuk daftar semua prosedur. `db_verify.py` menerjemahkannya menjadi
-   `SELECT` ke `sys.sql_modules`/`sys.objects` dengan parameter binding, jadi tetap read-only.
-   **`EXEC` tidak didukung** — isi prosedur bisa mengubah data. SQLite tidak punya SP; check `sp`
-   di SQLite gagal dengan pesan yang jelas, bukan diklaim lolos.
+   `{"id":"SP-01","sp":"dbo.NamaProsedur","expect":{"column":"definisi","contains_all":["IF @status","RAISERROR","RETURN"]}}`
+   atau `{"id":"SP-02","sp":"*"}` untuk daftar semua prosedur. `contains_all` memeriksa beberapa
+   kondisi sekaligus di teks definisi — cocok untuk memastikan aturan validasi ada di dalam SP.
+   `db_verify.py` menerjemahkan kunci `sp` menjadi `SELECT` ke `sys.sql_modules`/`sys.objects`
+   dengan parameter binding, jadi tetap read-only. **`EXEC` tidak didukung** — isi prosedur bisa
+   mengubah data. SQLite tidak punya SP; check `sp` di SQLite gagal dengan pesan yang jelas.
 
 ### 4.1 Skema `triage.json` (inline — tanpa redaction)
 
