@@ -355,6 +355,23 @@ Format detail bug wajib memakai template ini:
 - **AI Confidence:** [high / medium / low]
 ```
 
+### Verifikasi database (read-only) — lapisan bukti tambahan
+Gunakan bila temuan atau alur uji punya **state di database**. Ini melengkapi `UI → API → jaringan → penyimpanan → log`.
+
+1. **Koneksi hanya dari environment variable** — `QA_DB_SQLITE` (SQLite, tanpa setup) atau
+   `QA_DB_SERVER` + `QA_DB_NAME` + `QA_DB_USER` + `QA_DB_PASS` (+ `QA_DB_AUTH=windows` bila pakai Windows auth).
+   Kredensial **tidak pernah** ditulis di chat, spec, `triage.json`, atau DOCX.
+2. **Jalankan** `python db_verify.py --checks <file-json> --out pendukung/ai/db-verification.json`.
+   File checks berisi daftar asersi `SELECT` — lihat docstring di `db_verify.py`.
+3. **Read-only keras** — hanya `SELECT` / `WITH` / `PRAGMA`, satu statement per check.
+   `db_verify.py` menolak `INSERT`/`UPDATE`/`DELETE`/`DROP` dan multi-statement. Dilarang mengubah data.
+4. **Tambahkan bab ke DOCX** — masukkan `"db_verification"` ke `report.chapters` di `triage.json`.
+   Generator menyisipkan ringkasan koneksi, tabel query–status, dan baris hasil query.
+5. **Aturan temuan tetap berlaku** — bila asersi `FAIL`/`ERROR`, buat temuan dengan langkah reproduksi
+   + screenshot lingkaran merah. Bila database tidak terjangkau → `BLOCKED`, jangan diklaim lolos.
+6. **Gunakan akun read-only dan staging/UAT dulu.** Data pelanggan yang tampil di hasil query tunduk
+   pada aturan pelaporan di bawah — jangan disertakan mentah di laporan yang dibagikan.
+
 ### 4.1 Skema `triage.json` (inline — tanpa redaction)
 
 Jangan menyensor nilai di artifact maupun di DOCX. Terapkan aturan tunggal:
