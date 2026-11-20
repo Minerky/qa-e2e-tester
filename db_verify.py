@@ -30,6 +30,16 @@ File checks berisi daftar asersi SELECT. Contoh:
 Expect yang didukung: `value`, `min`, `max`, `contains`,
 `row_count`, `row_count_min`, `row_count_max`, `exists`.
 
+Stored procedure (SQL Server) — MEMBACA DEFINISI, bukan mengeksekusi:
+
+  {"id": "SP-01", "sp": "dbo.NamaProsedur",
+   "expect": {"column": "definisi", "contains": "SELECT"}}
+  {"id": "SP-02", "sp": "*"}     # daftar semua prosedur + definisinya
+
+Kunci `sp` menghasilkan SELECT ke `sys.sql_modules` / `sys.objects` dengan
+parameter binding — tetap tunduk pada guard read-only. `EXEC` sengaja tidak
+didukung: isi prosedur bisa saja mengubah data.
+
 Jalankan:
   python db_verify.py --checks checks.json --out pendukung/ai/db-verification.json
 """
@@ -93,6 +103,44 @@ def _safe_sql(sql):
     if not s.lower().startswith(ALLOWED_PREFIX):
         raise ValueError('hanya SELECT / WITH / PRAGMA yang diizinkan')
     return s
+
+
+# Katalog SQL Server — membaca teks definisi SP. Bukan EXEC.
+_SP_COLS = ("SELECT SCHEMA_NAME(o.schema_id) AS skema, o.name AS prosedur, "
+            "m.definition AS definisi FROM sys.sql_modules m "
+            "JOIN sys.objects o ON o.object_id = m.object_id "
+            "WHERE o.type = 'P' ")
+SP_LIST_SQL = _SP_COLS + "ORDER BY o.name"
+SP_ONE_SQL = _SP_COLS + "AND o.name = ?"
+SP_SCHEMA_SQL = _SP_COLS + "AND SCHEMA_NAME(o.schema_id) = ? AND o.name = ?"
+
+
+def _prepare_check(chk):
+    """Ubah check bertipe `sp` menjadi SELECT katalog yang aman.
+
+    Ini MEMBACA DEFINISI stored procedure, bukan menjalankannya. Nama SP
+    dilewatkan sebagai parameter binding, bukan disisipkan ke string SQL.
+    """
+    chk = dict(chk)
+    sp = chk.pop('sp', None)
+    if sp in (None, ''):
+        return chk
+    raw = str(sp).strip()
+    chk['kind'] = 'sp_definition'
+    if raw == '*':
+        chk['sql'] = SP_LIST_SQL
+        chk['params'] = []
+        chk.setdefault('name', 'Daftar semua stored procedure')
+    elif '.' in raw:
+        schema, name = raw.split('.', 1)
+        chk['sql'] = SP_SCHEMA_SQL
+        chk['params'] = [schema.strip(), name.strip()]
+        chk.setdefault('name', 'Definisi SP ' + raw)
+    else:
+        chk['sql'] = SP_ONE_SQL
+        chk['params'] = [raw]
+        chk.setdefault('name', 'Definisi SP ' + raw)
+    return chk
 
 
 def _connect():
@@ -179,8 +227,10 @@ def run_checks(checks_path, out_path, limit=20):
     conn = None
     try:
         conn, meta = _connect()
-        for chk in checks:
+        for raw_chk in checks:
+            chk = _prepare_check(raw_chk)
             item = {'id': chk.get('id', '-'), 'name': chk.get('name', chk.get('id', '-')),
+                    'kind': chk.get('kind', 'query'),
                     'sql': str(chk.get('sql', '')), 'status': STATUS_ERROR,
                     'detail': '', 'columns': [], 'rows': [], 'error': ''}
             try:
@@ -195,11 +245,16 @@ def run_checks(checks_path, out_path, limit=20):
                 item['status'], item['detail'] = status, detail
             except Exception as ex:
                 item['error'] = str(ex)
-                item['detail'] = 'Query ditolak atau gagal: ' + str(ex)
+                if chk.get('kind') == 'sp_definition' and meta.get('engine') == 'SQLite':
+                    item['detail'] = 'SQLite tidak memiliki stored procedure; kunci `sp` hanya untuk SQL Server.'
+                else:
+                    item['detail'] = 'Query ditolak atau gagal: ' + str(ex)
             results.append(item)
     except Exception as ex:
-        for chk in checks:
+        for raw_chk in checks:
+            chk = _prepare_check(raw_chk)
             results.append({'id': chk.get('id', '-'), 'name': chk.get('name', chk.get('id', '-')),
+                            'kind': chk.get('kind', 'query'),
                             'sql': str(chk.get('sql', '')), 'status': STATUS_ERROR,
                             'detail': 'Koneksi database gagal: ' + str(ex),
                             'columns': [], 'rows': [], 'error': str(ex)})
@@ -216,7 +271,7 @@ def run_checks(checks_path, out_path, limit=20):
         'target': meta.get('target', '-'),
         'driver': meta.get('driver', '-'),
         'read_only': True,
-        'mode': 'SELECT / WITH / PRAGMA saja; tidak ada DML/DDL',
+        'mode': 'SELECT / WITH / PRAGMA saja; tidak ada DML/DDL/EXEC. SP hanya dibaca definisinya.',
         'summary': {
             'total': len(results),
             'pass': sum(1 for r in results if r['status'] == STATUS_PASS),

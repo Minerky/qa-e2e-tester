@@ -574,14 +574,18 @@ class Report:
 
         checks = data.get('checks', [])
         rows = [[c.get('id', '-'), c.get('name', '-'),
-                 str(c.get('sql', '-')).replace('\n', ' ')[:88], c.get('status', '-')]
+                 'SP · definisi' if c.get('kind') == 'sp_definition' else 'Query',
+                 str(c.get('sql', '-')).replace('\n', ' ')[:80], c.get('status', '-')]
                 for c in checks]
         if rows:
-            self.table(['ID', 'Pemeriksaan', 'Query (SELECT)', 'Status'], rows,
-                       widths=[0.8, 2.25, 2.75, 0.85])
+            self.table(['ID', 'Pemeriksaan', 'Jenis', 'Query (SELECT)', 'Status'], rows,
+                       widths=[0.7, 1.9, 1.15, 2.7, 0.85])
 
         for c in checks:
             self.H(f"{c.get('id', '-')} — {c.get('name', '-')}", 3)
+            if c.get('kind') == 'sp_definition':
+                self.P('Jenis: pembacaan definisi stored procedure — prosedur TIDAK dijalankan '
+                       '(tanpa EXEC).', italic=True)
             self.P('Query: ' + str(c.get('sql', '-')).replace('\n', ' '), italic=True)
             if c.get('detail'):
                 self.P('Asersi: ' + str(c['detail']))
