@@ -36,9 +36,16 @@ definisi, misalnya `["IF @status", "RAISERROR", "RETURN"]`.
 Stored procedure (SQL Server) — MEMBACA DEFINISI, bukan mengeksekusi:
 
   {"id": "SP-01", "sp": "dbo.NamaProsedur",
-   "expect": {"column": "definisi", "contains": "SELECT"}}
-  {"id": "SP-02", "sp": "*"}     # daftar semua prosedur + definisinya
+   "expect": {"column": "definisi", "contains_all": ["IF @status","RAISERROR"]}}
+  {"id": "SP-02", "sp": "Valid*", "limit": 10, "offset": 0}
+  {"id": "SP-03", "sp": "*", "definition_contains": "area wajib diisi"}
+  {"id": "SP-04", "sp": "*", "definition_all": ["IF @status","RAISERROR"],
+   "limit": 20, "offset": 20}
 
+`sp`: nama exact, pola `*` (mis. `Valid*`), `schema.nama`, atau `*` untuk semua.
+`definition_contains` / `definition_all` mencari teks di dalam definisi SP —
+cocok untuk melacak notifikasi validasi ke prosedur pengirimnya.
+`offset` + `limit` melakukan paging; hasil menyimpan `total_matching`.
 Kunci `sp` menghasilkan SELECT ke `sys.sql_modules` / `sys.objects` dengan
 parameter binding — tetap tunduk pada guard read-only. `EXEC` sengaja tidak
 didukung: isi prosedur bisa saja mengubah data.
@@ -111,18 +118,26 @@ def _safe_sql(sql):
 # Katalog SQL Server — membaca teks definisi SP. Bukan EXEC.
 _SP_COLS = ("SELECT SCHEMA_NAME(o.schema_id) AS skema, o.name AS prosedur, "
             "m.definition AS definisi FROM sys.sql_modules m "
-            "JOIN sys.objects o ON o.object_id = m.object_id "
-            "WHERE o.type = 'P' ")
-SP_LIST_SQL = _SP_COLS + "ORDER BY o.name"
-SP_ONE_SQL = _SP_COLS + "AND o.name = ?"
-SP_SCHEMA_SQL = _SP_COLS + "AND SCHEMA_NAME(o.schema_id) = ? AND o.name = ?"
+            "JOIN sys.objects o ON o.object_id = m.object_id WHERE ")
+_SP_COUNT = ("SELECT COUNT(*) AS jumlah FROM sys.sql_modules m "
+             "JOIN sys.objects o ON o.object_id = m.object_id WHERE ")
+SP_LIST_SQL = _SP_COLS + "o.type = 'P' ORDER BY SCHEMA_NAME(o.schema_id), o.name"
+SP_ONE_SQL = _SP_COLS + "o.type = 'P' AND o.name = ?"
+SP_SCHEMA_SQL = _SP_COLS + "o.type = 'P' AND SCHEMA_NAME(o.schema_id) = ? AND o.name = ?"
+
+
+def _esc_like(val):
+    """Escape wildcard LIKE; semua nilai tetap dikirim sebagai parameter binding."""
+    return str(val).replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
 
 
 def _prepare_check(chk):
     """Ubah check bertipe `sp` menjadi SELECT katalog yang aman.
 
-    Ini MEMBACA DEFINISI stored procedure, bukan menjalankannya. Nama SP
-    dilewatkan sebagai parameter binding, bukan disisipkan ke string SQL.
+    MEMBACA DEFINISI stored procedure, bukan menjalankannya.
+    - `sp`: nama exact, pola memakai `*`, `schema.nama`, atau `*` untuk semua.
+    - `definition_contains` / `definition_all`: cari teks di dalam definisi SP.
+    - `offset` / `limit`: paging kalau database punya banyak SP.
     """
     chk = dict(chk)
     sp = chk.pop('sp', None)
@@ -130,19 +145,47 @@ def _prepare_check(chk):
         return chk
     raw = str(sp).strip()
     chk['kind'] = 'sp_definition'
+    where = ["o.type = 'P'"]
+    params = []
+    exact = False
+
+    def _name_clause(value):
+        nonlocal exact
+        if '*' in value:
+            where.append("o.name LIKE ? ESCAPE '\\'")
+            params.append(_esc_like(value).replace('*', '%'))
+        else:
+            where.append("o.name = ?")
+            params.append(value)
+            exact = True
+
     if raw == '*':
-        chk['sql'] = SP_LIST_SQL
-        chk['params'] = []
-        chk.setdefault('name', 'Daftar semua stored procedure')
+        pass
     elif '.' in raw:
         schema, name = raw.split('.', 1)
-        chk['sql'] = SP_SCHEMA_SQL
-        chk['params'] = [schema.strip(), name.strip()]
-        chk.setdefault('name', 'Definisi SP ' + raw)
+        where.append("SCHEMA_NAME(o.schema_id) = ?")
+        params.append(schema.strip())
+        _name_clause(name.strip())
     else:
-        chk['sql'] = SP_ONE_SQL
-        chk['params'] = [raw]
-        chk.setdefault('name', 'Definisi SP ' + raw)
+        _name_clause(raw)
+
+    terms = chk.pop('definition_all', None)
+    if terms is None:
+        one = chk.pop('definition_contains', None)
+        terms = [one] if one else []
+    if isinstance(terms, str):
+        terms = [terms]
+    chk['_definition_terms'] = list(terms)
+    for t in terms:
+        where.append("m.definition LIKE ? ESCAPE '\\'")
+        params.append('%' + _esc_like(t) + '%')
+
+    clause = ' AND '.join(where)
+    chk['_where'] = clause
+    chk['_params'] = list(params)
+    chk['sql'] = _SP_COLS + clause + " ORDER BY SCHEMA_NAME(o.schema_id), o.name"
+    chk['params'] = list(params)
+    chk.setdefault('name', ('Definisi SP ' + raw) if exact else 'Pencarian SP ' + raw)
     return chk
 
 
@@ -243,13 +286,30 @@ def run_checks(checks_path, out_path, limit=20):
                     'detail': '', 'columns': [], 'rows': [], 'error': ''}
             try:
                 sql = _safe_sql(chk.get('sql'))
+                want = max(1, int(chk.get('limit') or limit))
+                off = max(0, int(chk.get('offset') or 0))
                 cur = conn.cursor()
                 cur.execute(sql, tuple(chk.get('params') or []))
                 columns = [d[0] for d in (cur.description or [])]
-                rows = [list(r) for r in cur.fetchmany(limit)]
+                fetched = [list(r) for r in cur.fetchmany(off + want)]
+                rows = fetched[off:]
                 item['columns'] = columns
                 item['rows'] = rows
+                if chk.get('kind') == 'sp_definition':
+                    item['offset'], item['page_limit'] = off, want
+                    try:
+                        ccur = conn.cursor()
+                        ccur.execute(_SP_COUNT + chk['_where'], tuple(chk['_params']))
+                        crow = ccur.fetchone()
+                        if crow:
+                            item['total_matching'] = int(crow[0])
+                    except Exception:
+                        pass
                 status, detail = _evaluate(chk, columns, rows)
+                if chk.get('_definition_terms') and not rows and status == STATUS_PASS:
+                    status = STATUS_FAIL
+                    detail = ('Tidak ada SP yang definisinya mengandung: '
+                              + ', '.join(chk['_definition_terms']))
                 item['status'], item['detail'] = status, detail
             except Exception as ex:
                 item['error'] = str(ex)

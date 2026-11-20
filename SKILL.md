@@ -376,13 +376,25 @@ Gunakan bila temuan atau alur uji punya **state di database**. Ini melengkapi `U
    + screenshot lingkaran merah. Bila database tidak terjangkau → `BLOCKED`, jangan diklaim lolos.
 6. **Gunakan akun read-only dan staging/UAT dulu.** Data pelanggan yang tampil di hasil query tunduk
    pada aturan pelaporan di bawah — jangan disertakan mentah di laporan yang dibagikan.
-7. **Stored procedure — baca definisi, jangan eksekusi.** Untuk SQL Server pakai kunci `sp` di check:
-   `{"id":"SP-01","sp":"dbo.NamaProsedur","expect":{"column":"definisi","contains_all":["IF @status","RAISERROR","RETURN"]}}`
-   atau `{"id":"SP-02","sp":"*"}` untuk daftar semua prosedur. `contains_all` memeriksa beberapa
-   kondisi sekaligus di teks definisi — cocok untuk memastikan aturan validasi ada di dalam SP.
-   `db_verify.py` menerjemahkan kunci `sp` menjadi `SELECT` ke `sys.sql_modules`/`sys.objects`
-   dengan parameter binding, jadi tetap read-only. **`EXEC` tidak didukung** — isi prosedur bisa
-   mengubah data. SQLite tidak punya SP; check `sp` di SQLite gagal dengan pesan yang jelas.
+7. **Stored procedure — baca definisi, jangan eksekusi.** Untuk SQL Server pakai kunci `sp`:
+   - Nama exact: `{"sp":"dbo.ValidateProblem","expect":{"column":"definisi","contains_all":["IF @area","RAISERROR"]}}`
+   - Banyak SP: `{"sp":"Valid*","limit":10,"offset":0}` — `*` adalah wildcard nama; `offset`/`limit`
+     melakukan paging. Hasil menyimpan `total_matching` supaya jelas ada berapa SP yang cocok.
+   - Cari dari pesan notifikasi: `{"sp":"*","definition_contains":"area wajib diisi"}` atau
+     `{"sp":"*","definition_all":["IF @status","RAISERROR"]}` — ini melacak notifikasi validasi ke
+     prosedur pengirimnya tanpa menjalankan prosedur.
+   `db_verify.py` menerjemahkan semuanya menjadi `SELECT` ke `sys.sql_modules`/`sys.objects` dengan
+   parameter binding. **`EXEC` tidak didukung** — isi prosedur bisa mengubah data. SQLite tidak punya
+   SP; check `sp` di SQLite gagal dengan pesan yang jelas.
+8. **Lacak notifikasi → SP tanpa mengisi kredensial.** Bila yang ada hanya teks notifikasi, jalankan
+   `python find_notif.py --text "Validasi gagal: area wajib diisi"`. Skrip mencari targetnya sendiri:
+   file kredensial → connection string di `appsettings*.json` / `web.config` / `.env` /
+   `docker-compose*.yml` di sekitar workspace → instance lokal. Windows Integrated Auth dipakai bila
+   tidak ada password, jadi **tidak perlu mengisi kredensial**. Hanya nama server/database yang
+   diekstrak dari config — password tidak pernah dibaca, disimpan, atau ditampilkan. Output
+   `pendukung/ai/sp-notif-search.json` berisi `database.schema.prosedur` dan baris definisi yang cocok.
+   Tetap `SELECT` katalog, tanpa `EXEC`. Bila tidak ada target yang terjangkau → `BLOCKED`, bukan
+   ditebak; yang diminta adalah nama instance/akses jaringan, **bukan password**.
 
 ### 4.1 Skema `triage.json` (inline — tanpa redaction)
 

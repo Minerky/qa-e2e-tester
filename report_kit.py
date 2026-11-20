@@ -589,6 +589,9 @@ class Report:
             self.P('Query: ' + str(c.get('sql', '-')).replace('\n', ' '), italic=True)
             if c.get('detail'):
                 self.P('Asersi: ' + str(c['detail']))
+            if c.get('total_matching') is not None:
+                self.P(f"SP cocok: {c['total_matching']} · ditampilkan: {len(c.get('rows') or [])} "
+                       f"(offset {c.get('offset', 0)}, limit {c.get('page_limit', '-')})", italic=True)
             if c.get('error'):
                 self.P('Error: ' + str(c['error']), italic=True)
             cols = c.get('columns') or []
