@@ -358,11 +358,14 @@ Format detail bug wajib memakai template ini:
 ### Verifikasi database (read-only) — lapisan bukti tambahan
 Gunakan bila temuan atau alur uji punya **state di database**. Ini melengkapi `UI → API → jaringan → penyimpanan → log`.
 
-1. **Koneksi dari file kredensial lokal** — `%USERPROFILE%\.config\opencode\qa-credentials.local.json`,
-   blok `db`: `sqlite` / `server` / `database` / `user` / `password` / `auth` / `driver` / `limit`.
-   File ini sengaja **di luar repo git** — jangan dipindah ke workspace. Environment variable
-   (`QA_DB_SQLITE`, `QA_DB_SERVER`, `QA_DB_NAME`, `QA_DB_USER`, `QA_DB_PASS`, `QA_DB_AUTH`, ...)
-   lebih prioritas. Kredensial **tidak pernah** ditulis di chat, spec, `triage.json`, atau DOCX.
+1. **Koneksi dari file kredensial lokal** — prioritas: `QA_CREDENTIALS_FILE` →
+   `%USERPROFILE%\.config\opencode\qa-credentials.local.json` → `qa-credentials.local.json` di folder skill.
+   Repo menyimpan **`qa-credentials.example.json`** (template kosong, aman di-commit). Setelah clone:
+   `copy qa-credentials.example.json qa-credentials.local.json`, lalu isi file `.local.json` —
+   nama itu sudah masuk `.gitignore`, jadi password tidak bisa ikut ter-commit. Blok `db` berisi
+   `sqlite` / `server` / `database` / `user` / `password` / `auth` / `driver` / `limit`.
+   Environment variable (`QA_DB_SQLITE`, `QA_DB_SERVER`, `QA_DB_NAME`, `QA_DB_USER`, `QA_DB_PASS`,
+   `QA_DB_AUTH`, ...) tetap lebih prioritas. Kredensial **tidak pernah** ditulis di chat/spec/DOCX.
 2. **Jalankan** `python db_verify.py --checks <file-json> --out pendukung/ai/db-verification.json`.
    File checks berisi daftar asersi `SELECT` — lihat docstring di `db_verify.py`.
 3. **Read-only keras** — hanya `SELECT` / `WITH` / `PRAGMA`, satu statement per check.

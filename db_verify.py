@@ -42,8 +42,23 @@ import sqlite3
 ALLOWED_PREFIX = ('select', 'with', 'pragma')
 STATUS_PASS, STATUS_FAIL, STATUS_ERROR = 'PASS', 'FAIL', 'ERROR'
 
-CRED_FILE = os.environ.get('QA_CREDENTIALS_FILE') or os.path.join(
-    os.path.expanduser('~'), '.config', 'opencode', 'qa-credentials.local.json')
+_USER_CRED = os.path.join(os.path.expanduser('~'), '.config', 'opencode', 'qa-credentials.local.json')
+_LOCAL_CRED = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'qa-credentials.local.json')
+
+
+def _resolve_cred_file():
+    """Prioritas: env → file user-level → file di folder skill (hasil clone)."""
+    explicit = os.environ.get('QA_CREDENTIALS_FILE')
+    if explicit:
+        return explicit
+    if os.path.isfile(_USER_CRED):
+        return _USER_CRED
+    if os.path.isfile(_LOCAL_CRED):
+        return _LOCAL_CRED
+    return _USER_CRED
+
+
+CRED_FILE = _resolve_cred_file()
 ENV_MAP = {
     'sqlite': 'QA_DB_SQLITE', 'server': 'QA_DB_SERVER', 'database': 'QA_DB_NAME',
     'user': 'QA_DB_USER', 'password': 'QA_DB_PASS', 'auth': 'QA_DB_AUTH',
