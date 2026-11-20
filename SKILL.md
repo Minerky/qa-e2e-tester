@@ -36,7 +36,7 @@ Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mo
 | Input | Sumber otomatis (urutan prioritas) |
 |---|---|
 | `TARGET_URL` | argumen perintah → dokumen pendukung (FSD/PRD/User Guide/Test Scripts/config di workspace) → **tanya sekali** kalau tidak ada sumber |
-| `QA_USER` / `QA_PASS` / `QA_TEST_MODE_PIN` / OTP test | file lokal `.env.qa` atau `qa-credentials.local.json` di workspace → jangan diminta di chat. **Identitas, password, PIN, dan OTP akun uji ditampilkan di laporan internal**; yang tetap `[REDACTED]`: NIK, nomor HP, token pihak ketiga, chat ID |
+| `QA_USER` / `QA_PASS` / `QA_TEST_MODE_PIN` / OTP test | file lokal `.env.qa` atau `qa-credentials.local.json` di workspace → jangan diminta di chat. **Semua nilai yang tersedia di artefak ditampilkan apa adanya di laporan internal**; nilai yang tidak ada ditulis `(...)` — tanpa marker `[REDACTED]` |
 | serial ADB | `mumu-cli info` → `adb_port` hasil deteksi, bukan hardcode |
 | package / APK | argumen → APK di workspace → `pm list packages` / `dumpsys` |
 | test case & ekspektasi | dokumen pendukung → generate case otomatis |
@@ -47,7 +47,7 @@ Alias yang dikenali: `e2e web`, `e2e mobile`, `jalankan E2E web/mobile`, `run mo
 
 ### Aturan kredensial — SATU versi (berlaku di seluruh skill)
 
-Identitas, role, sumber akun, metode login, **password, PIN Test Mode, dan OTP akun uji ditampilkan** di laporan internal (satu tim/perusahaan). Yang tetap `[REDACTED]`: **NIK, nomor HP, token pihak ketiga (bot/API), chat ID, Android ID, dan data pribadi di luar akun uji**. Kredensial tidak diminta di chat dan tidak ditulis ke log runtime. Kalau tidak tersedia atau tidak dipakai, tulis terus terang "tidak disediakan / tidak dieksekusi" — jangan mengarang nilai. Tidak ada aturan lain yang boleh mengubah ini.
+Identitas, role, sumber akun, metode login, **password, PIN Test Mode, OTP, nomor HP, NIK, token, chat ID, dan Android ID ditampilkan apa adanya** di laporan internal (satu tim/perusahaan) **selama nilainya tersedia di artefak**. Kredensial tetap tidak diminta di chat dan tidak ditulis ke log runtime. Kalau nilai tidak ada, tulis `(...)`; bila alur tidak dijalankan, nyatakan status `BLOCKED`. Jangan mengarang dan jangan memakai marker `[REDACTED]`. Tidak ada aturan lain yang boleh mengubah ini.
 
 ### Loop otonom vibe tester
 
@@ -331,14 +331,13 @@ Format detail bug wajib mencantumkan screenshot visual:
 - **AI Confidence:** [high / medium / low]
 ```
 
-### 4.1 Redaction & skema `triage.json` (inline — tidak bergantung file helper)
+### 4.1 Skema `triage.json` (inline — tanpa redaction)
 
-Terapkan redaction ke semua artifact sebelum disimpan:
-- NIK / nomor induk 16 digit → `[REDACTED]`
-- nomor HP `08…` / `62…` → `[REDACTED]`
-- token bot `Angka:Token` dan chat ID numerik panjang → `[REDACTED]`
-- Android ID / `android_id` 16 hex → `[REDACTED]`
-- password/PIN/OTP akun uji → **tidak disensor** (aturan §0.2)
+Jangan menyensor nilai di artifact maupun di DOCX. Terapkan aturan tunggal:
+- Semua nilai yang tersedia di artefak → ditulis apa adanya di `triage.json` dan laporan.
+- Nilai yang tidak ada → tulis `(...)`, bukan `[REDACTED]`.
+- Kredensial tidak diminta di chat dan tidak ditulis ke log runtime (aturan §0.2).
+- Verifikasi akhir memastikan tidak ada marker `[REDACTED]` di DOCX maupun `pendukung/ai/*`.
 
 Field minimal tiap entri `ai/triage.json`: `id`, `title`, `category` (`Functional Bug` / `Security Risk` / `Network Risk`), `severity`, `location`, `likelihood`, `impact`, `risk_score`, `cvss` (opsional), `actual`, `expected`, `business_impact`, `recommendation`, `evidence[]` (path nyata), `confidence`, `chain`, `status` (`PASS` / `FAIL` / `BLOCKED`).
 
@@ -360,9 +359,23 @@ hasil-test-<target>/
     build_final_report.py / verify_final.py  ← generator + verifier (opsional)
 ```
 
-Isi wajib DOCX: halaman judul & meta (target, tanggal, scope, status QA), ringkasan eksekutif + metrik, metodologi, lingkungan pengujian (**termasuk akun uji sesuai aturan §0.2**), temuan gabungan (lokasi, `L × I`, CVSS, dampak bisnis, rekomendasi, bukti), hasil functional/web/mobile/API/security/network/performance, **risk register sebagai tabel**, **daftar test case sebagai lampiran**, rekomendasi prioritas, batasan & status `BLOCKED`, lampiran bukti.
+Isi wajib DOCX: halaman judul & meta (target, tanggal, scope, status QA), ringkasan eksekutif + metrik, metodologi, lingkungan pengujian (**termasuk akun uji sesuai aturan §0.2**), temuan gabungan (lokasi, `L × I`, CVSS, dampak bisnis, rekomendasi, bukti), hasil functional/web/mobile/API/security/network/performance, **risk register sebagai tabel**, **daftar test case sebagai lampiran**, rekomendasi prioritas, batasan & status `BLOCKED`, lampiran bukti. DOCX hanya mencatat hasil uji — **jangan sisipkan catatan pengembangan skill, status tool, atau referensi `SKILL.md`**.
 
-Generator: `python-docx` untuk teks/tabel/gambar. `openpyxl` **hanya dipakai kalau user eksplisit meminta pengisian Excel terpisah** (default tidak). Verifikasi akhir: struktur bab lengkap, satu `.docx`, redaction sesuai aturan §0.2, dan tidak ada kredensial yang terlewat dari pemeriksaan.
+Generator: `python-docx` untuk teks/tabel/gambar. `openpyxl` **hanya dipakai kalau user eksplisit meminta pengisian Excel terpisah** (default tidak). Verifikasi akhir: struktur bab lengkap, satu `.docx`, tidak ada marker `[REDACTED]`, dan seluruh nilai tersedia tampil sesuai aturan §0.2.
+
+### 5.1 Generator kanonik — satu untuk semua target
+
+Jangan menulis ulang script DOCX per target. Pakai generator di folder skill:
+
+```bash
+python <folder skill>/build_report.py --root hasil-test-<target>
+python <folder skill>/build_report.py --root hasil-test-<target> --verify
+```
+
+- `report_kit.py` berisi styling, tabel, gambar tertanam, parser `generated-cases.md`, inventaris bukti, dan verifier. Kit ini buta terhadap web/mobile/API dan tidak melakukan redaction.
+- Target menentukan isi lewat blok `report` di `ai/triage.json`: `profile` (`web`/`mobile`/`api`/`all`), `output`, `header`/`title`/`subtitle`, `chapters`, dan blok tambahan (`table`, `paragraph`, `bullets`, `heading`, `image`, `flow_table`, `perf_table`, `page_break`).
+- Alur eksplorasi tiap aplikasi tetap berbeda; yang distandardisasi hanya kulit laporan. Bab disusun dari `report.chapters`, sehingga target baru tidak memerlukan script baru.
+- `--profile` mengoverride profil; `--output` hanya untuk staging saat file asli terkunci (misalnya masih dibuka Word). Setelah file ditutup, salin hasil staging ke nama final dan jalankan ulang `--verify`.
 
 ---
 
@@ -428,7 +441,10 @@ Riwayat lengkap ada di `git log` repository. Ringkasan terbaru:
 - Output dipaksa satu DOCX; risk register & daftar test case disisipkan, bukan file terpisah.
 - Nama tool browser Playwright disesuaikan dengan tool Code Mode.
 - Redaction + skema `triage.json` tersedia inline (tidak bergantung helper yang dihapus).
-- Dua file saja: `SKILL.md` (instruksi agent) + `CARA_INSTALL.md` (panduan manusia).
+- File inti: `SKILL.md` (instruksi agent), `CARA_INSTALL.md` (panduan manusia), `report_kit.py` + `build_report.py` (generator kanonik).
 - Auto-resolve input dari perintah + dokumen pendukung; user tidak perlu set env.
 - Routing perintah `e2e web` / `e2e mobile` / `e2e all`.
 - Modul terpadu quality/security/network/performance dalam satu laporan DOCX.
+- Generator DOCX kanonik: satu `report_kit.py` + `build_report.py` untuk semua target; bab diambil dari blok `report` di `triage.json`, bukan script per target.
+- Mode 4 (pure blackbox web) terbukti di Wisesa; alur eksplorasi tiap target tetap beda, yang distandardisasi hanya kulit laporan.
+- Regresi DCT + Wisesa: isi bab berbeda, format identik, verifier `CLEAN`.
