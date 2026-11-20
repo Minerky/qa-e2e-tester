@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """Verifikasi database READ-ONLY untuk QA E2E Tester.
 
-Kredensial dibaca dari environment variable — tidak pernah dari argumen,
-chat, spec, atau laporan:
+Kredensial dibaca dari file lokal DI LUAR repo git:
+  %USERPROFILE%\\.config\\opencode\\qa-credentials.local.json
+(bisa diubah lewat QA_CREDENTIALS_FILE). Environment variable lebih prioritas.
+Kredensial tidak pernah ditulis ke argumen, chat, spec, atau laporan:
 
   QA_DB_SQLITE   path file SQLite (mode tanpa setup sama sekali)
   QA_DB_SERVER   SQL Server: "host\\instance" atau "host,port"
@@ -40,6 +42,31 @@ import sqlite3
 ALLOWED_PREFIX = ('select', 'with', 'pragma')
 STATUS_PASS, STATUS_FAIL, STATUS_ERROR = 'PASS', 'FAIL', 'ERROR'
 
+CRED_FILE = os.environ.get('QA_CREDENTIALS_FILE') or os.path.join(
+    os.path.expanduser('~'), '.config', 'opencode', 'qa-credentials.local.json')
+ENV_MAP = {
+    'sqlite': 'QA_DB_SQLITE', 'server': 'QA_DB_SERVER', 'database': 'QA_DB_NAME',
+    'user': 'QA_DB_USER', 'password': 'QA_DB_PASS', 'auth': 'QA_DB_AUTH',
+    'driver': 'QA_DB_DRIVER', 'limit': 'QA_DB_LIMIT',
+}
+_CREDS = None
+
+
+def _cred(key, default=''):
+    """Environment variable menang; kalau kosong, baca dari file kredensial lokal."""
+    global _CREDS
+    val = os.environ.get(ENV_MAP.get(key, ''))
+    if val:
+        return val
+    if _CREDS is None:
+        try:
+            with open(CRED_FILE, encoding='utf-8') as fh:
+                _CREDS = (json.load(fh).get('db') or {})
+        except Exception:
+            _CREDS = {}
+    val = _CREDS.get(key, default)
+    return default if val is None else val
+
 
 def _safe_sql(sql):
     """Terima hanya satu pernyataan baca. Tolak DML/DDL dan multi-statement."""
@@ -54,7 +81,7 @@ def _safe_sql(sql):
 
 
 def _connect():
-    sqlite_path = os.environ.get('QA_DB_SQLITE')
+    sqlite_path = _cred('sqlite')
     if sqlite_path:
         if not os.path.isfile(sqlite_path):
             raise RuntimeError('File SQLite tidak ditemukan: ' + sqlite_path)
@@ -66,22 +93,22 @@ def _connect():
     except ImportError:
         raise RuntimeError('pyodbc belum terpasang: python -m pip install pyodbc')
 
-    server = os.environ.get('QA_DB_SERVER', '')
-    database = os.environ.get('QA_DB_NAME', '')
+    server = _cred('server')
+    database = _cred('database')
     if not server or not database:
-        raise RuntimeError('QA_DB_SERVER dan QA_DB_NAME wajib di-set')
+        raise RuntimeError('Isi server dan database di ' + CRED_FILE)
 
-    driver = os.environ.get('QA_DB_DRIVER') or 'ODBC Driver 18 for SQL Server'
+    driver = _cred('driver') or 'ODBC Driver 18 for SQL Server'
     parts = [
         'DRIVER={' + driver + '}',
         'SERVER=' + server,
         'DATABASE=' + database,
     ]
-    if os.environ.get('QA_DB_AUTH', 'sql').lower() == 'windows':
+    if _cred('auth', 'sql').lower() == 'windows':
         parts.append('Trusted_Connection=yes')
     else:
-        parts.append('UID=' + os.environ.get('QA_DB_USER', ''))
-        parts.append('PWD=' + os.environ.get('QA_DB_PASS', ''))
+        parts.append('UID=' + str(_cred('user')))
+        parts.append('PWD=' + str(_cred('password')))
     if driver.startswith('ODBC Driver 1'):
         parts.append('TrustServerCertificate=yes')
     conn = pyodbc.connect(';'.join(parts), timeout=15, attributes_before_connect=None)
@@ -194,6 +221,6 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser(description='Verifikasi database read-only untuk QA E2E')
     ap.add_argument('--checks', required=True, help='file JSON berisi daftar query asersi')
     ap.add_argument('--out', default=os.path.join('pendukung', 'ai', 'db-verification.json'))
-    ap.add_argument('--limit', type=int, default=int(os.environ.get('QA_DB_LIMIT', '20')))
+    ap.add_argument('--limit', type=int, default=int(_cred('limit', 20)))
     a = ap.parse_args()
     run_checks(a.checks, a.out, a.limit)
