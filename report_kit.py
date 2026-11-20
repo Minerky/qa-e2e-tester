@@ -67,6 +67,85 @@ SECTION_HINTS = {
 }
 
 
+def norm_shots(finding):
+    """Screenshot temuan + anotasi merah.
+
+    Mendukung format lama (`shots: ["file.png"]`) dan format baru:
+      "shots": [{"ref": "file.png",
+                 "highlight": {"type": "circle", "x": 0.6, "y": 0.3, "w": 0.2, "h": 0.15},
+                 "label": "Area temuan"}]
+    Koordinat x/y/w/h relatif (0–1) terhadap ukuran gambar; nilai >1 dibaca piksel.
+    """
+    raw = list(finding.get('shots') or [])
+    ev = finding.get('evidence', [])
+    if isinstance(ev, str):
+        ev = [x.strip() for x in re.split(r';|\n', ev) if x.strip()]
+    for e in ev:
+        if isinstance(e, str) and e.lower().endswith('.png'):
+            raw.append({'ref': os.path.basename(e)})
+    out, seen = [], set()
+    for s in raw:
+        if isinstance(s, dict):
+            item = {
+                'ref': str(s.get('ref') or s.get('path') or s.get('file') or ''),
+                'highlight': s.get('highlight') or s.get('annotation'),
+                'label': s.get('label', ''),
+            }
+        else:
+            item = {'ref': str(s), 'highlight': None, 'label': ''}
+        key = os.path.basename(item['ref'])
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(item)
+    return out
+
+
+def annotate_shot(fp, highlight, label, out_dir):
+    """Gambar lingkaran/kotak merah pada screenshot; kembalikan path hasil anotasi."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    def px(v, size):
+        v = float(v)
+        return v * size if -1.0 <= v <= 1.0 else v
+
+    im = Image.open(fp).convert('RGB')
+    W, H = im.size
+    d = ImageDraw.Draw(im)
+    h = dict(highlight or {})
+    typ = str(h.get('type') or 'circle').lower()
+    if typ in ('circle', 'ellipse') and 'cx' in h and 'cy' in h:
+        cx, cy = px(h['cx'], W), px(h['cy'], H)
+        r = px(h.get('r', 0.06), W)
+        box = [cx - r, cy - r, cx + r, cy + r]
+    else:
+        x = px(h.get('x', 0.35), W)
+        y = px(h.get('y', 0.35), H)
+        w = px(h.get('w', 0.3), W)
+        hh = px(h.get('h', 0.2), H)
+        box = [x, y, x + w, y + hh]
+    width = max(3, int(min(W, H) * 0.008))
+    red = (230, 20, 25)
+    if typ in ('circle', 'ellipse'):
+        d.ellipse(box, outline=red, width=width)
+    else:
+        d.rectangle(box, outline=red, width=width)
+    if label:
+        try:
+            font = ImageFont.truetype(r'C:\Windows\Fonts\segoeuib.ttf',
+                                      max(15, int(H * 0.026)))
+        except Exception:
+            font = ImageFont.load_default()
+        ly = max(0, int(box[1] - H * 0.055))
+        d.text((max(0, int(box[0])), ly), str(label), fill=red, font=font,
+               stroke_width=1, stroke_fill=(255, 255, 255))
+    os.makedirs(out_dir, exist_ok=True)
+    out = os.path.join(out_dir,
+                       os.path.splitext(os.path.basename(fp))[0] + '_red.png')
+    im.save(out)
+    return out
+
+
 def norm_findings(triage):
     """Normalisasi skema lama (sev/cat/rec/impact teks) dan baru (severity/.../skor)."""
     out = []
@@ -85,10 +164,7 @@ def norm_findings(triage):
         ev = f.get('evidence', [])
         if isinstance(ev, str):
             ev = [x.strip() for x in re.split(r';|\n', ev) if x.strip()]
-        shots = list(f.get('shots') or [])
-        for e in ev:
-            if isinstance(e, str) and e.lower().endswith('.png'):
-                shots.append(os.path.basename(e))
+        shots = norm_shots(f)
         out.append({
             'id': f.get('id', '-'), 'title': f.get('title', '-'), 'severity': sev,
             'category': f.get('category') or f.get('cat') or '-',
@@ -98,7 +174,7 @@ def norm_findings(triage):
             'business': business, 'recommendation': f.get('recommendation') or f.get('rec') or '-',
             'steps': f.get('steps') or [], 'cwe': f.get('cwe', '-'),
             'chain': f.get('chain') or [], 'evidence': ev, 'confidence': f.get('confidence', '-'),
-            'shots': list(dict.fromkeys(shots)),
+            'shots': shots,
         })
     return out
 
@@ -273,11 +349,19 @@ class Report:
             if os.path.isfile(c): return c
         return None
 
-    def image(self, ref, caption, width=5.6):
+    def image(self, ref, caption, width=5.6, highlight=None, label=''):
         fp = self.resolve_image(ref)
         if not fp:
             self.P('Gambar tidak tersedia: ' + str(ref), italic=True); return False
-        self.doc.add_picture(fp, width=Inches(width))
+        used = fp
+        if highlight:
+            try:
+                used = annotate_shot(fp, highlight, label,
+                                     os.path.join(self.base, 'bukti', 'annotated'))
+                caption = str(caption) + ' · lingkaran merah: ' + (str(label) or 'area temuan')
+            except Exception as ex:
+                self.P('Anotasi merah gagal dibuat: ' + str(ex), italic=True)
+        self.doc.add_picture(used, width=Inches(width))
         cap = self.doc.add_paragraph(style='Caption'); cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
         cap.add_run(R(caption)).italic = True
         return True
@@ -420,10 +504,17 @@ class Report:
             self.P('Rekomendasi: ' + str(f['recommendation']))
             self.P('Bukti: ' + '; '.join(map(str, f['evidence'])) +
                    (f" (keyakinan: {f['confidence']})" if f['confidence'] != '-' else ''), italic=True)
+            if not any(s.get('highlight') for s in f['shots']):
+                self.P('CATATAN: screenshot temuan ini belum diberi lingkaran merah di triage.json.',
+                       italic=True)
             for shot in f['shots']:
-                fp = self.resolve_image(shot)
+                ref = shot.get('ref', '') if isinstance(shot, dict) else str(shot)
+                fp = self.resolve_image(ref)
                 if fp and fp not in used:
-                    self.image(shot, f"Gambar: {f['id']} — {os.path.basename(fp)} (bukti dari temuan).")
+                    self.image(ref,
+                               f"Gambar: {f['id']} — {os.path.basename(fp)} (bukti dari temuan).",
+                               highlight=shot.get('highlight') if isinstance(shot, dict) else None,
+                               label=shot.get('label', '') if isinstance(shot, dict) else '')
                     used.add(fp)
 
     def passed(self):

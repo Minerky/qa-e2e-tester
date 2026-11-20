@@ -313,21 +313,46 @@ Setiap bug/defect diklasifikasikan dengan tingkat keparahan (*Severity*):
 - Setiap risk wajib punya **lokasi eksplisit**: endpoint/URL, `host:port`, file kode, komponen APK/IPA, atau layar/elemen.
 - `AI Confidence`: `high` / `medium` / `low`. Temuan Critical/High wajib divalidasi manual sebelum ditutup.
 
-Format detail bug wajib mencantumkan screenshot visual:
+### Aturan bukti temuan — berlaku untuk temuan sekecil apa pun
+**Tidak ada temuan yang terlalu kecil untuk dilaporkan.** INFO/LOW/cosmetic/typo/warna/satu tombol
+tetap wajib lengkap. Untuk **setiap** temuan:
+
+1. **Proses kejadian (reproduksi) eksplisit** — tulis urutan aksi nyata: klik/tap tombol mana,
+   isi field apa, scroll ke mana, URL/layar/elemen, dan hasil yang terlihat. Jangan hanya
+   menulis "tombol tidak jalan". Contoh: `1. Buka /login; 2. Klik ikon titik-tiga kanan atas;
+   3. Ketik PIN di field Password; 4. Klik SUBMIT; 5. Amati IS_SERVER berubah menjadi false.`
+2. **Screenshot asli + anotasi merah** — ambil screenshot saat asersi, lalu **lingkari** (default)
+   atau **kotakkan merah** area temuan. Simpan file aslinya di `pendukung/bukti/screenshots/`,
+   lalu cantumkan anotasinya di `triage.json`:
+   ```json
+   "shots": [{
+     "ref": "pendukung/bukti/screenshots/01_login.png",
+     "highlight": {"type": "circle", "x": 0.62, "y": 0.31, "w": 0.18, "h": 0.12},
+     "label": "Pesan error di sini"
+   }]
+   ```
+   `x,y,w,h` relatif 0–1 terhadap ukuran gambar (nilai >1 dibaca piksel).
+   `type: "box"` untuk kotak; alternatif lingkaran: `{"type":"circle","cx":...,"cy":...,"r":...}`.
+3. **Tertanam di DOCX** — generator menyisipkan gambar yang sudah dilingkari merah **tepat di bawah
+   temuan yang bersangkutan**. Jika `highlight` kosong, DOCX menandai *"belum dianotasi merah"*
+   dan temuan dianggap belum selesai.
+
+Format detail bug wajib memakai template ini:
 ```markdown
 ### [SEVERITY] [BUG-XX / RISK-XX]: [Judul Singkat]
 - **Kategori:** Functional Bug | Security Risk | Network Risk
 - **Lokasi / Halaman / Host:** [URL / endpoint / host:port / file / komponen APK/IPA / tab]
 - **Likelihood (1-5) / Impact (1-5) / Risk Score:** [L] / [I] / [L×I]
 - **CVSS (opsional):** [vektor + skor]
-- **Langkah Reproduksi:**
-  1. [Langkah 1]
-  2. [Langkah 2]
+- **Langkah Reproduksi (klik/tap apa, berurutan):**
+  1. [Buka halaman/URL mana, klik tombol/link/tab apa]
+  2. [Ketik field apa, lalu klik tombol apa]
+  3. [Amati perubahan/apa yang muncul — sebut elemen & teksnya]
 - **Kondisi Aktual (Actual):** [Apa yang terjadi]
 - **Kondisi Harapan (Expected):** [Apa yang seharusnya terjadi sesuai spesifikasi]
 - **Dampak Bisnis:** [Contoh: kebocoran data pelanggan, takeover akun, downtime]
 - **Rekomendasi Solusi Teknis:** [Saran perbaikan untuk developer/ops]
-- **Bukti Visual/Log:** [path screenshot/log/request-response di hasil-test/...]
+- **Bukti Visual (screenshot + lingkaran merah):** [path file asli + koordinat `highlight`]
 - **AI Confidence:** [high / medium / low]
 ```
 
