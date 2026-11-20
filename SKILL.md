@@ -359,7 +359,7 @@ hasil-test-<target>/
     build_final_report.py / verify_final.py  ← generator + verifier (opsional)
 ```
 
-Isi wajib DOCX: halaman judul & meta (target, tanggal, scope, status QA), ringkasan eksekutif + metrik, metodologi, lingkungan pengujian (**termasuk akun uji sesuai aturan §0.2**), temuan gabungan (lokasi, `L × I`, CVSS, dampak bisnis, rekomendasi, bukti), hasil functional/web/mobile/API/security/network/performance, **risk register sebagai tabel**, **daftar test case sebagai lampiran**, rekomendasi prioritas, batasan & status `BLOCKED`, lampiran bukti. DOCX hanya mencatat hasil uji — **jangan sisipkan catatan pengembangan skill, status tool, atau referensi `SKILL.md`**.
+Isi wajib DOCX: halaman judul & meta (target, tanggal, scope, status QA), ringkasan eksekutif + metrik, metodologi, lingkungan pengujian (**termasuk akun uji sesuai aturan §0.2**), temuan gabungan (lokasi, `L × I`, CVSS, dampak bisnis, rekomendasi, bukti), hasil functional/web/mobile/API/security/network/performance, **risk register sebagai tabel**, **daftar test case sebagai lampiran**, rekomendasi prioritas, batasan & status `BLOCKED`, **bab Kesimpulan & Rekomendasi Akhir** (status akhir, rekomendasi rilis, distribusi temuan, simpulan utama, dan catatan tambahan dari `conclusion` di triage), lampiran bukti. DOCX hanya mencatat hasil uji — **jangan sisipkan catatan pengembangan skill, status tool, atau referensi `SKILL.md`**.
 
 Generator: `python-docx` untuk teks/tabel/gambar. `openpyxl` **hanya dipakai kalau user eksplisit meminta pengisian Excel terpisah** (default tidak). Verifikasi akhir: struktur bab lengkap, satu `.docx`, tidak ada marker `[REDACTED]`, dan seluruh nilai tersedia tampil sesuai aturan §0.2.
 

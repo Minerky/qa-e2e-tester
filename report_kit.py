@@ -34,13 +34,13 @@ SEV_RGB = {'CRITICAL': RGBColor(0xB0,0x00,0x00), 'HIGH': RGBColor(0xC0,0x50,0x00
 
 DEFAULT_CHAPTERS = {
     'web': ['cover','executive','scope','method','environment','findings','passed',
-            'risk','recommendations','limits','appendix_cases','appendix_evidence','appendix_extra'],
+            'risk','recommendations','limits','conclusion','appendix_cases','appendix_evidence','appendix_extra'],
     'mobile': ['cover','executive','scope','method','environment','findings','passed',
-               'risk','recommendations','limits','appendix_cases','appendix_evidence','appendix_extra'],
+               'risk','recommendations','limits','conclusion','appendix_cases','appendix_evidence','appendix_extra'],
     'api': ['cover','executive','scope','method','environment','findings','passed',
-            'risk','recommendations','limits','appendix_cases','appendix_evidence'],
+            'risk','recommendations','limits','conclusion','appendix_cases','appendix_evidence'],
     'all': ['cover','executive','scope','method','environment','findings','passed',
-            'risk','recommendations','limits','appendix_cases','appendix_evidence','appendix_extra'],
+            'risk','recommendations','limits','conclusion','appendix_cases','appendix_evidence','appendix_extra'],
 }
 
 BUILTIN_TITLES = {
@@ -53,6 +53,7 @@ BUILTIN_TITLES = {
     'risk': 'Risk Register',
     'recommendations': 'Rekomendasi Prioritas',
     'limits': 'Batasan & Status',
+    'conclusion': 'Kesimpulan & Rekomendasi Akhir',
     'appendix_cases': 'Lampiran — Daftar Test Case',
     'appendix_evidence': 'Lampiran — Inventaris Bukti',
     'appendix_extra': 'Lampiran — Bukti Eksekusi Tambahan',
@@ -61,7 +62,7 @@ BUILTIN_TITLES = {
 SECTION_HINTS = {
     'scope': ['Scope & Rules'], 'method': ['Metodologi'], 'environment': ['Lingkungan Pengujian'],
     'findings': ['Temuan'], 'risk': ['Risk Register'], 'recommendations': ['Rekomendasi Prioritas'],
-    'limits': ['Batasan & Status'], 'appendix_cases': ['Daftar Test Case'],
+    'limits': ['Batasan & Status'], 'conclusion': ['Kesimpulan'], 'appendix_cases': ['Daftar Test Case'],
     'appendix_evidence': ['Inventaris Bukti'], 'appendix_extra': ['Bukti Eksekusi Tambahan'],
 }
 
@@ -266,6 +267,7 @@ class Report:
         if ref.startswith('pendukung' + os.sep): cands.append(os.path.join(self.root, ref))
         cands += [os.path.join(self.base, 'screenshots', os.path.basename(ref)),
                   os.path.join(self.base, 'bukti', os.path.basename(ref)),
+                  os.path.join(self.base, 'bukti', 'screenshots', os.path.basename(ref)),
                   os.path.join(self.base, ref)]
         for c in cands:
             if os.path.isfile(c): return c
@@ -423,7 +425,6 @@ class Report:
                 if fp and fp not in used:
                     self.image(shot, f"Gambar: {f['id']} — {os.path.basename(fp)} (bukti dari temuan).")
                     used.add(fp)
-                    break
 
     def passed(self):
         self.P('Pemeriksaan yang lolos (PASS). Rincian seluruh case, termasuk BLOCKED, ada di lampiran.', italic=True)
@@ -462,6 +463,72 @@ class Report:
             self.P(str(vv.get('note','-')))
             for c in vv.get('cases', []):
                 self.bullet(f"{c.get('id')} [{c.get('status')}] — {c.get('note')}")
+
+    def conclusion(self):
+        tr = self.triage
+        s = tr.get('summary', {}) or {}
+        by = s.get('by_severity', {}) or {}
+        crit = int(by.get('CRITICAL', 0) or 0)
+        high = int(by.get('HIGH', 0) or 0)
+        med = int(by.get('MEDIUM', 0) or 0)
+        low = int(by.get('LOW', 0) or 0)
+        total = int(s.get('total_findings', len(self._findings)) or 0)
+        rec = str(s.get('release_recommendation', '-'))
+        if crit:
+            status = 'GAGAL — temuan CRITICAL, rilis ditolak'
+        elif high:
+            status = 'RISIKO TINGGI — perbaikan wajib sebelum rilis'
+        elif med:
+            status = 'RISIKO SEDANG — perbaikan dijadwalkan'
+        elif total:
+            status = 'RISIKO RENDAH — perbaikan lanjutan'
+        else:
+            status = 'TIDAK ADA TEMUAN KRITIS — hasil memuaskan'
+
+        self.P('Kesimpulan akhir dari seluruh eksekusi pengujian, merangkum status kualitas, temuan utama, dan keputusan lanjutan.', italic=True)
+        rows = [
+            ['Status akhir', status],
+            ['Rekomendasi rilis', rec],
+            ['Total temuan', str(total)],
+            ['Distribusi', f'CRITICAL {crit} | HIGH {high} | MEDIUM {med} | LOW {low}'],
+            ['Lingkungan', str(tr.get('environment', '-'))],
+        ]
+        cc = s.get('case_counts')
+        if cc:
+            rows.append(['Test case', f"{cc.get('total','-')} = {cc.get('pass','-')} PASS, "
+                                     f"{cc.get('fail','-')} FAIL, {cc.get('blocked','-')} BLOCKED"])
+        self.table(['Aspek', 'Nilai'], rows, widths=[1.7, 4.9])
+
+        self.H('Simpulan Utama', 2)
+        if total:
+            top = self._findings[0]
+            self.bullet(f"Temuan paling signifikan: {top['id']} — {top['title']} ({top['severity']}).")
+            self.bullet(f"Sebanyak {total} temuan tercatat; prioritas penanganan mengikuti bab Rekomendasi Prioritas.")
+        else:
+            self.bullet('Tidak ada temuan yang terkonfirmasi pada cakupan dan skenario yang dijalankan.')
+        vv = tr.get('recheck')
+        if vv:
+            self.bullet("Uji ulang: " + str(vv.get('note', '-')))
+        self.bullet('Hasil pengujian ini gambaran pada titik waktu eksekusi; perubahan kode atau data dapat mengubah status.')
+
+        custom = tr.get('conclusion')
+        if custom:
+            self.H('Catatan Kesimpulan Tambahan', 2)
+            if isinstance(custom, str):
+                self.P(custom)
+            elif isinstance(custom, dict):
+                if custom.get('narrative'): self.P(str(custom['narrative']))
+                for k, label in [('decision', 'Keputusan'), ('next_steps', 'Langkah Berikutnya')]:
+                    v = custom.get(k)
+                    if not v: continue
+                    if isinstance(v, list):
+                        self.H(label, 3)
+                        for x in v: self.bullet(str(x))
+                    else:
+                        self.P(f"{label}: {v}")
+            elif isinstance(custom, list):
+                for x in custom: self.bullet(str(x))
+        self.blocks(self.cfg.get('conclusion_blocks', []))
 
     def appendix_cases(self):
         path = os.path.join(self.base, 'ai', 'generated-cases.md')
