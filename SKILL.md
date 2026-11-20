@@ -313,9 +313,8 @@ Setiap bug/defect diklasifikasikan dengan tingkat keparahan (*Severity*):
 - Setiap risk wajib punya **lokasi eksplisit**: endpoint/URL, `host:port`, file kode, komponen APK/IPA, atau layar/elemen.
 - `AI Confidence`: `high` / `medium` / `low`. Temuan Critical/High wajib divalidasi manual sebelum ditutup.
 
-### Aturan bukti temuan — berlaku untuk temuan sekecil apa pun
-**Tidak ada temuan yang terlalu kecil untuk dilaporkan.** INFO/LOW/cosmetic/typo/warna/satu tombol
-tetap wajib lengkap. Untuk **setiap** temuan:
+### Aturan bukti temuan — temuan sekecil apa pun tidak boleh lolos dari report
+**Semua temuan wajib masuk report. Tidak ada yang boleh dibuang, difilter, atau dianggap terlalu sepele untuk ditulis.** Setiap anomali yang teramati selama pengujian harus tercatat sebagai `finding` di `ai/triage.json` dan tampil di DOCX — INFO/LOW/cosmetic/typo/warna/satu tombol/teks meleset tetap wajib lengkap. Untuk **setiap** temuan:
 
 1. **Proses kejadian (reproduksi) eksplisit** — tulis urutan aksi nyata: klik/tap tombol mana,
    isi field apa, scroll ke mana, URL/layar/elemen, dan hasil yang terlihat. Jangan hanya
